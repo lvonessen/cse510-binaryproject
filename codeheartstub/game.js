@@ -6,10 +6,12 @@
 //														   //
 //					CONSTANT STATE						 //
 
-// TODO: DECLARE and INTIALIZE your constants here
+// DECLARE and INTIALIZE your constants here
 var START_TIME = currentTime();
-// amount of time, in seconds, before a cell falls down one slot
-var FALL_TIME = 0.5; 
+// amount of time, in seconds, before a tile falls down one slot
+var FALL_TIME = 0.5;
+// time, in seconds, until the next tile gets generated
+var GEN_TIME = 1; 
 
 // In tiles
 var BOARD_SIZE	 = 4;
@@ -20,8 +22,6 @@ var HEADER_SIZE  = 200;
 
 var BOARD_WIDTH = 8;
 var BOARD_HEIGHT = 7;// visible height + 1 for the invisible "next tile" row
-var EMPTY = -1;
-var LANDED = 2;
 var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 					"empty": makeColor(234/256, 240/256, 250/256), 
 					"falling": makeColor(173/256, 194/256, 235/256), 
@@ -32,12 +32,12 @@ var GAME_NAME = "Binary Game" ;
 //														   //
 //					 MUTABLE STATE						 //
 
-// TODO: DECLARE your variables here
+// DECLARE your variables here
 var lastKeyCode;
 var board;
 var numTilesInCol;
 var nextFallTime;
-var setUp = false;
+var nextGenTime;
 
 ///////////////////////////////////////////////////////////////
 //														   //
@@ -47,34 +47,48 @@ var setUp = false;
 function onSetup() {
 	// TODO: INITIALIZE your variables here
 	lastKeyCode = 0;
-	nextFallTime = currentTime();
 	
+	paused = true;
 	initializeBoard();
 	drawScreen();
 }
 
+function onUnPause(){
+	nextFallTime = currentTime();//+FALL_TIME;
+	nextGenTime = currentTime();//+GEN_TIME;
+}
 
 // When a key is pushed
 function onKeyStart(key) {
 	lastKeyCode = key;
-	generateTile();
-	setUp = true;
+	if (paused){
+		onUnPause();
+	}
+	paused = !paused;
 }
 
+// When a touch starts
 function onTouchStart(x, y, id) {
     onKeyStart(32);
 }
 
-
 // Called 30 times or more per second
 function onTick() {
 	// Some sample drawing 
-	if (setUp && nextFallTime < currentTime()){
-		nextFallTime += FALL_TIME;
-		fall();
-		//console.log(nextFallTime);
-		drawScreen();
-	}	
+	
+	if (!paused){
+		if (nextFallTime < currentTime()){
+			nextFallTime += FALL_TIME;
+			fall();
+			//console.log(nextFallTime);
+			drawScreen();
+		}
+		
+		if (nextGenTime < currentTime()){
+			nextGenTime += GEN_TIME;
+			generateTile();	
+		}
+	}
 	
 	/*clearRectangle(0, 0, screenWidth, screenHeight);
 
@@ -115,27 +129,24 @@ function fall(){
 	x = 0;
 	while (x < BOARD_WIDTH) {
 		
+		// we need to check y in direction 
+		// BOARD_HEIGHT to 0 
+		// to avoid having to track whether a 
+		// tile has already fallen this turn or not
 		y = BOARD_HEIGHT-1;
 		while (y > 0) {
 			
-			// check if cell above is falling
-			// so it can either fall further or be marked as landed
-			// (or both if it's falling into the final row)
-			if (board[x][y-1].state == "falling"){
-				// if this cell is empty, swap
-				if (board[x][y].state == "empty"){
-					board[x][y].state = "falling";
-					board[x][y].binary = board[x][y-1].binary;
-					board[x][y-1].state="empty";
-					board[x][y-1].binary="";
-					// if it's in the bottom row, mark it as landed
-					if (y==BOARD_HEIGHT-1){
-						board[x][y].state = "landed";
-					}
-				} 
-				// else if this cell is landed, the cell above has also landed				
-				else if (board[x][y].state == "landed" ) {
-					board[x][y-1].state = "landed";
+			// check if the tile above should fall into this slot
+			if (board[x][y-1].state == "falling" && board[x][y].state == "empty"){
+				board[x][y].state = "falling";
+				board[x][y].binary = board[x][y-1].binary;
+				board[x][y-1].state="empty";
+				board[x][y-1].binary="";
+				
+				// if it's in the bottom row or the tile below it 
+				// has landed, mark the current tile as landed
+				if (y==BOARD_HEIGHT-1 || board[x][y+1].state=="landed"){
+					board[x][y].state = "landed";
 				}
 			}
 			
@@ -179,13 +190,13 @@ function initializeBoard() {
 			tile.state = "empty";
 			
 			// Center of the tile in pixels
-			tile.upleft = makeObject();
+			tile.center = makeObject();
 			// SW-TS*BW is the sum of horizontal margins (in pixels)
-			tile.upleft.x = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2 + (x ) * TILE_SIZE;
+			tile.center.x = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2 + (x+.5) * TILE_SIZE;
 			// (SH-HS)...+HS leaves vertical space for a title
 			// BH-1, y-1 hides row 0
-			tile.upleft.y = ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 
-									+ (y-1) * TILE_SIZE + HEADER_SIZE;
+			tile.center.y = ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 
+									+ (y-1+.5) * TILE_SIZE + HEADER_SIZE;
 			
 			board[x][y] = tile;
 			
@@ -227,18 +238,16 @@ function drawScreen() {
 		by = 1;
 		while (by < BOARD_HEIGHT) {
 			tile = board[bx][by];
-			x = tile.upleft.x + BORDER;
-			y = tile.upleft.y + BORDER;
-			sideLength = TILE_SIZE - 2*BORDER ;//- 7;
+			dim = convertxyCentered(tile.center.x,tile.center.y,TILE_SIZE,BORDER);
 
 			// top
 			// fillRectangle(x0, y0, w, h, color, <cornerRadius>)
 			// strokeRectangle(x0, y0, w, h, color, thickness, <cornerRadius>)
-			fillRectangle(x, y, sideLength, sideLength, COLORS[tile.state], CORNER);
-			strokeRectangle(x, y, sideLength, sideLength, BORDER_COLOR, BORDER, CORNER);
+			fillRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, COLORS[tile.state], CORNER);
+			strokeRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, BORDER_COLOR, BORDER, CORNER);
 
 			// label
-			fillText(tile.binary, x + sideLength/2, y + sideLength/2,	   
+			fillText(tile.binary, tile.center.x , tile.center.y ,	   
 					 makeColor(0.2, 0.2, 0.2), 
 					 "" + round(TILE_SIZE * 0.65) + "px Times New Roman", 
 					 "center", 
@@ -258,6 +267,15 @@ function drawScreen() {
 				   
 		i = i + 1;
 	}*/
+}
+
+function convertxyCentered(x,y,w,b) {
+	var obj = {
+		x: x-w/2+b,
+		y: y-w/2+b,
+		sideLength: w - 2*b 
+	}
+	return obj;
 }
 
 
