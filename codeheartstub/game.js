@@ -79,7 +79,7 @@ function onTick() {
 	if (!paused){
 		if (nextFallTime < currentTime()){
 			nextFallTime += FALL_TIME;
-			fall();
+			onFall();
 			//console.log(nextFallTime);
 			drawScreen();
 		}
@@ -122,7 +122,7 @@ function onTick() {
 //														   //
 //					  HELPER RULES						 //
 
-function fall(){
+function onFall(){
 	var x;
 	var y;
 
@@ -172,6 +172,7 @@ function initializeBoard() {
 	var x;
 	var y;
 	var tile;
+	var boardTL = boardTopLeft();
 
 	// Create an array of columns
 	board = [];
@@ -190,13 +191,10 @@ function initializeBoard() {
 			tile.state = "empty";
 			
 			// Center of the tile in pixels
-			tile.center = makeObject();
-			// SW-TS*BW is the sum of horizontal margins (in pixels)
-			tile.center.x = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2 + (x+.5) * TILE_SIZE;
-			// (SH-HS)...+HS leaves vertical space for a title
-			// BH-1, y-1 hides row 0
-			tile.center.y = ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 
-									+ (y-1+.5) * TILE_SIZE + HEADER_SIZE;
+			tile.center = makeObject();			
+			tile.center.x = boardTL.x + (x+.5) * TILE_SIZE;
+			// y-1 hides row 0
+			tile.center.y = boardTL.y + (y-1+.5) * TILE_SIZE;
 			
 			board[x][y] = tile;
 			
@@ -209,10 +207,10 @@ function initializeBoard() {
 //
 function drawScreen() {
 	var BORDER = 10;
-	var BORDER_COLOR = makeColor(0.6, 0.6, 0.6);
+	var BORDER_COLOR = makeColor(0.8, 0.8, 0.8);
 	var THICKNESS = 16;
 	// corner radius, in pixels
-	var CORNER = 2;
+	var CORNER = 10;
 
 	var x;
 	var y;
@@ -226,10 +224,10 @@ function drawScreen() {
 	fillText(GAME_NAME, screenWidth / 2, 100, makeColor(0.5, 0.5, 0.5),
 			 "100px Arial", "center", "top");
 
-	/*if (phase == SHOW_GOOD_WORD) {
-		fillText(toUpperCase(activeWord), screenWidth / 2, 130, makeColor(0.1, 0.6, 0.3),
-				 "bold 115px Times New Roman", "center", "top");
-	}*/
+	// Board background
+	
+	var boardTL = boardTopLeft();
+	fillRectangle(boardTL.x-BORDER, boardTL.y-BORDER,2*BORDER+ BOARD_WIDTH*TILE_SIZE, 2*BORDER+(BOARD_HEIGHT-1)*TILE_SIZE, BORDER_COLOR, CORNER);
 
 	// Board
 	bx = 0;
@@ -244,7 +242,7 @@ function drawScreen() {
 			// fillRectangle(x0, y0, w, h, color, <cornerRadius>)
 			// strokeRectangle(x0, y0, w, h, color, thickness, <cornerRadius>)
 			fillRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, COLORS[tile.state], CORNER);
-			strokeRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, BORDER_COLOR, BORDER, CORNER);
+			//strokeRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, BORDER_COLOR, BORDER, CORNER);
 
 			// label
 			fillText(tile.binary, tile.center.x , tile.center.y ,	   
@@ -269,6 +267,7 @@ function drawScreen() {
 	}*/
 }
 
+// top left x,y, width, and border
 function convertxyCentered(x,y,w,b) {
 	var obj = {
 		x: x-w/2+b,
@@ -278,8 +277,16 @@ function convertxyCentered(x,y,w,b) {
 	return obj;
 }
 
-
-
+function boardTopLeft(){
+	var obj = {
+		// SW-TS*BW is the sum of horizontal margins (in pixels)
+		x: (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2,
+		// (SH-HS)...+HS leaves vertical space for a title
+		// BH-1 ignores row 0
+		y: ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
+	}
+	return obj;
+}
 
 
 
