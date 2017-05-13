@@ -8,6 +8,8 @@
 
 // TODO: DECLARE and INTIALIZE your constants here
 var START_TIME = currentTime();
+// amount of time, in seconds, before a cell falls down one slot
+var FALL_TIME = 0.5; 
 
 // In tiles
 var BOARD_SIZE	 = 4;
@@ -20,9 +22,10 @@ var BOARD_WIDTH = 8;
 var BOARD_HEIGHT = 7;// visible height + 1 for the invisible "next tile" row
 var EMPTY = -1;
 var LANDED = 2;
-var COLORS = {"empty": makeColor(234, 240, 250), 
-				"falling": makeColor(173, 194, 235), 
-				 "landed": makeColor(111, 148, 220) };
+var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
+					"empty": makeColor(234/256, 240/256, 250/256), 
+					"falling": makeColor(173/256, 194/256, 235/256), 
+					"landed": makeColor(111/256, 148/256, 220/256) };
 var GAME_NAME = "Binary Game" ;
 
 ///////////////////////////////////////////////////////////////
@@ -33,6 +36,8 @@ var GAME_NAME = "Binary Game" ;
 var lastKeyCode;
 var board;
 var numTilesInCol;
+var nextFallTime;
+var setUp = false;
 
 ///////////////////////////////////////////////////////////////
 //														   //
@@ -42,6 +47,7 @@ var numTilesInCol;
 function onSetup() {
 	// TODO: INITIALIZE your variables here
 	lastKeyCode = 0;
+	nextFallTime = currentTime();
 	
 	initializeBoard();
 	drawScreen();
@@ -52,13 +58,24 @@ function onSetup() {
 function onKeyStart(key) {
 	lastKeyCode = key;
 	generateTile();
+	setUp = true;
+}
+
+function onTouchStart(x, y, id) {
+    onKeyStart(32);
 }
 
 
 // Called 30 times or more per second
 function onTick() {
 	// Some sample drawing 
-
+	if (setUp && nextFallTime < currentTime()){
+		nextFallTime += FALL_TIME;
+		fall();
+		//console.log(nextFallTime);
+		drawScreen();
+	}	
+	
 	/*clearRectangle(0, 0, screenWidth, screenHeight);
 
 	fillText("hello world",
@@ -90,16 +107,52 @@ function onTick() {
 ///////////////////////////////////////////////////////////////
 //														   //
 //					  HELPER RULES						 //
-function drawCell(row, col){
-	
+
+function fall(){
+	var x;
+	var y;
+
+	x = 0;
+	while (x < BOARD_WIDTH) {
+		
+		y = BOARD_HEIGHT-1;
+		while (y > 0) {
+			
+			// check if cell above is falling
+			// so it can either fall further or be marked as landed
+			// (or both if it's falling into the final row)
+			if (board[x][y-1].state == "falling"){
+				// if this cell is empty, swap
+				if (board[x][y].state == "empty"){
+					board[x][y].state = "falling";
+					board[x][y].binary = board[x][y-1].binary;
+					board[x][y-1].state="empty";
+					board[x][y-1].binary="";
+					// if it's in the bottom row, mark it as landed
+					if (y==BOARD_HEIGHT-1){
+						board[x][y].state = "landed";
+					}
+				} 
+				// else if this cell is landed, the cell above has also landed				
+				else if (board[x][y].state == "landed" ) {
+					board[x][y-1].state = "landed";
+				}
+			}
+			
+			y = y - 1;
+		}  
+		x = x + 1;
+	}
 }
 
 function generateTile(){
-	txt = randomInteger(0,1);
-	row = randomInteger(0,BOARD_WIDTH-1);
-	col = randomInteger(0,BOARD_HEIGHT-1);
-	board[row][col].binary=txt;
-	board[row][col].state="falling";
+	// choose a column for the tile
+	var x = randomInteger(0,BOARD_WIDTH-1);
+	
+	// set text 0 or 1 and state falling
+	board[x][0].binary=randomInteger(0,1);
+	board[x][0].state="falling";
+	
 	drawScreen();
 }
 
@@ -108,8 +161,6 @@ function initializeBoard() {
 	var x;
 	var y;
 	var tile;
-
-	var numVowels;
 
 	// Create an array of columns
 	board = [];
@@ -146,8 +197,8 @@ function initializeBoard() {
 
 //
 function drawScreen() {
-	var BORDER = 4;
-	var BORDER_COLOR = makeColor(0.4, 0.4, 0.4);
+	var BORDER = 10;
+	var BORDER_COLOR = makeColor(0.6, 0.6, 0.6);
 	var THICKNESS = 16;
 	// corner radius, in pixels
 	var CORNER = 2;
@@ -157,14 +208,11 @@ function drawScreen() {
 	var tile;
 	var bx;
 	var by;
-	var offset;
-	var color;
-	var i;
 	var sideLength;
 
 	// Background
-	fillRectangle(0, 0, screenWidth, screenHeight, makeColor(1, 1, 1));
-	fillText(GAME_NAME, screenWidth / 2, 20, makeColor(0.5, 0.5, 0.5),
+	fillRectangle(0, 0, screenWidth, screenHeight, COLORS["background"]);
+	fillText(GAME_NAME, screenWidth / 2, 100, makeColor(0.5, 0.5, 0.5),
 			 "100px Arial", "center", "top");
 
 	/*if (phase == SHOW_GOOD_WORD) {
@@ -181,7 +229,7 @@ function drawScreen() {
 			tile = board[bx][by];
 			x = tile.upleft.x + BORDER;
 			y = tile.upleft.y + BORDER;
-			sideLength = TILE_SIZE - 2*BORDER - 7;
+			sideLength = TILE_SIZE - 2*BORDER ;//- 7;
 
 			// top
 			// fillRectangle(x0, y0, w, h, color, <cornerRadius>)
