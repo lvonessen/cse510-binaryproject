@@ -24,12 +24,16 @@ var NUMBER_FREQUENCY =
 var NONE           = -1;
 
 var SHOW_NUMBER_TIME = 1.5; // seconds
+var TOTAL_GAME_TIME = 90; // seconds
 
 var PLAYING        = 0;
 var SHOW_GOOD_NUMBER = 1;
+var GAME_OVER      = 2;
 var SHOW_BAD_NUMBER = 0;
 
 var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
+
+
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
@@ -64,6 +68,8 @@ var activeDecimal;
 // touched to create activeNumber, in order
 var activeNumberLine;
 
+var timeLeft; // in seconds
+
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
@@ -78,6 +84,11 @@ function onSetup() {
     nextPhaseTime  = 0;
     score          = 0;
     minLength      = 2;
+    maxLength      = 10;
+    
+    timeLeft       = TOTAL_GAME_TIME;
+    lastOnTickTime = currentTime();
+    lastRedrawTime = 0;
 
     resetBoard();
 }
@@ -166,7 +177,9 @@ function onTouchEnd(x, y, id) {
                     nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
                     phase         = SHOW_GOOD_NUMBER;
                     score = score + parseInt(decimal, 10);
-                    minLength = minLength + 1;
+                    if (minLength < maxLength) {
+                        minLength = minLength + 1;
+                    }
                 }
                 else {
                     SHOW_BAD_NUMBER = 1;
@@ -178,10 +191,14 @@ function onTouchEnd(x, y, id) {
                             SHOW_BAD_NUMBER = 0;
                             nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
                             phase         = SHOW_GOOD_NUMBER;
-                            score = score + 1;
+                            score = score + length(activeNumber);
                         }
                     }
                 }
+            }
+            else {
+                alert("You need to select a number that is " + minLength + " tiles long.");
+                resetBoard();
             } 
         }
         drawScreen();
@@ -190,11 +207,48 @@ function onTouchEnd(x, y, id) {
 
 
 function onTick() {
+    // Update the timer
+    var now = currentTime();
+    var deltaTime = now - lastOnTickTime;
+    lastOnTickTime = now;
+    timeLeft -= deltaTime;
+
     if ((phase == SHOW_GOOD_NUMBER) && (currentTime() > nextPhaseTime)) {
         // Advance to the next board
-        phase = PLAYING;
-        
-        resetBoard();
+        if (timeLeft > 0) {
+            phase = PLAYING;
+            resetBoard();
+        }
+        else {
+            phase = GAME_OVER;
+            resetBoard();
+            var skillLevel;
+            if (score < 128) {
+                skillLevel = "Novice";
+            }
+            else if (score < 256) {
+                skillLevel = "Beginner";
+            }
+            else if (score < 512) {
+                skillLevel = "Pretty Good"
+            }
+            else if (score < 1024) {
+                skillLevel = "Advanced"
+            }
+            else {
+                skillLevel = "Expert"
+            }
+            var gameOverString = "GAME OVER! Your final score was: " + score + "\n\n" +
+            "Your binary counting skill level is: " + skillLevel +
+            "\n\nClick \"OK\" to play again \nor\nClick \"Cancel\" to close tab." ;
+            var playAgain = window.confirm(gameOverString);
+            if (playAgain == true) {
+                onSetup();
+            }
+            else {
+                window.close();
+            }
+        }
     }
 
 }
@@ -202,6 +256,15 @@ function onTick() {
 ///////////////////////////////////////////////////////////////
 //                                                           //
 //                      HELPER RULES                         //
+
+
+function drawGameOverScreen() {
+
+    drawImage(GAME_OVER_IMAGE);
+
+    fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
+
+}
 
 
 // Returns the distance between P1 and P2, which must each have
