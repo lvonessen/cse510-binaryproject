@@ -1,9 +1,6 @@
 // binarytrace/game.js
 //
 // Prototype game for teaching counting in binary.
-//
-// Modeled after code provided at https://casual-effects.com/codeheart/examples/tracewordslite/
-// and https://casual-effects.com/codeheart/examples/tracewords/
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
@@ -233,17 +230,44 @@ function onTick() {
                 skillLevel = "Beginner";
             }
             else if (score < 512) {
-                skillLevel = "Pretty Good"
+                skillLevel = "Pretty Good";
             }
             else if (score < 1024) {
-                skillLevel = "Advanced"
+                skillLevel = "Advanced";
+            }
+            else if (score < 2048) {
+                skillLevel = "Expert";
             }
             else {
-                skillLevel = "Expert"
+                skillLevel = "Genius";
             }
+
+            var nextLevel;
+            switch (skillLevel)
+            {
+               case "Novice": nextLevel = "Beginner"
+               break;
+               
+               case "Beginner": nextLevel = "Pretty Good"
+               break;
+               
+               case "Pretty Good": nextLevel = "Advanced"
+               break;
+
+               case "Advanced": nextLevel = "Expert"
+               break;
+
+               case "Expert": nextLevel = "Genius"
+               break;
+               
+               default: "This game has no chance against you!"
+            }
+
+
             var gameOverString = "GAME OVER! Your final score was: " + score + "\n\n" +
-            "Your binary counting skill level is: " + skillLevel +
-            "\n\nClick \"OK\" to play again \nor\nClick \"Cancel\" to close tab." ;
+            "Your binary counting skill level is: \"" + skillLevel + 
+            "\"\n\nPlay again to try advancing to the next level --> \"" + nextLevel +
+            "\"\n\nClick \"OK\" to play again \nor\nClick \"Cancel\" to close tab." ;
             var playAgain = window.confirm(gameOverString);
             if (playAgain == true) {
                 onSetup();
