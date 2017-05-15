@@ -1,6 +1,9 @@
 // binarytrace/game.js
 //
 // Prototype game for teaching counting in binary.
+//
+// Modeled after code provided at https://casual-effects.com/codeheart/examples/tracewordslite/
+// and https://casual-effects.com/codeheart/examples/tracewords/
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
