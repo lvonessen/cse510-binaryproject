@@ -1,6 +1,6 @@
-// take1/game.js
+// codeheartstub/game.js
 //
-// First attempt at this thing
+// First attempt at this thing--falling tiles
 
 ///////////////////////////////////////////////////////////////
 //														   //
@@ -25,19 +25,40 @@ var BOARD_HEIGHT = 7;// visible height + 1 for the invisible "next tile" row
 var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 					"empty": makeColor(234/256, 240/256, 250/256), 
 					"falling": makeColor(173/256, 194/256, 235/256), 
-					"landed": makeColor(111/256, 148/256, 220/256) };
+					"landed": makeColor(111/256, 148/256, 220/256),
+					"active": makeColor(56/256, 74/256, 110/256) };
+
+var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 var GAME_NAME = "Binary Game" ;
 
 ///////////////////////////////////////////////////////////////
 //														   //
 //					 MUTABLE STATE						 //
 
-// DECLARE your variables here
+// Most recently pressed key
 var lastKeyCode;
+
+// tiles with state and center points
 var board;
+
+// TODO: implement this
+// use to make tiles more likely to fall in emptier cols
 var numTilesInCol;
+
+// time to set tiles falling
 var nextFallTime;
+
+// time to make new tile
 var nextGenTime;
+
+// (x, y) coordinates of the centers of the tiles that have been
+// touched to create activeNumber, in order
+var activeNumberLine;
+
+// The number that is currently being selected
+var activeNumber;
+
+var touchID;
 
 ///////////////////////////////////////////////////////////////
 //														   //
@@ -61,15 +82,19 @@ function onUnPause(){
 // When a key is pushed
 function onKeyStart(key) {
 	lastKeyCode = key;
-	if (paused){
-		onUnPause();
+	if (key == 32){
+		if (paused){
+			onUnPause();
+		}
+		paused = !paused;
 	}
-	paused = !paused;
 }
 
 // When a touch starts
 function onTouchStart(x, y, id) {
-    onKeyStart(32);
+    //onKeyStart(32);
+    touchID = id;
+    onTouchMove(x,y,id);
 }
 
 // Called 30 times or more per second
@@ -89,38 +114,89 @@ function onTick() {
 			generateTile();	
 		}
 	}
-	
-	/*clearRectangle(0, 0, screenWidth, screenHeight);
-
-	fillText("hello world",
-			 screenWidth / 2, 
-			 screenHeight / 2,			 
-			 makeColor(0.5, 0.0, 1.0, 1.0), 
-			 "300px Times New Roman", 
-			 "center", 
-			 "middle");
-
-	fillText(round(currentTime() - START_TIME) + " seconds since start",
-			 screenWidth / 2, 
-			 screenHeight / 2 + 300,   
-			 makeColor(1.0, 1.0, 1.0, 1.0), 
-			 "100px Arial", 
-			 "center", 
-			 "middle");
-
-	fillText("last key code: " + lastKeyCode,
-			 screenWidth / 2, 
-			 screenHeight / 2 + 500,			 
-			 makeColor(0.7, 0.7, 0.7, 1.0), 
-			 "100px Arial", 
-			 "center", 
-			 "middle");*/
 }
 
 
 ///////////////////////////////////////////////////////////////
 //														   //
 //					  HELPER RULES						 //
+
+
+// converts touch to board index
+// sets both to -1 if off board
+function getBoardIndex(x,y){
+	var boardTL = boardTopLeft();
+	// top left corner of displayed board
+	x -= boardTL.x;
+	y -= boardTL.y;
+	// tile width
+	x /= TILE_SIZE;
+	y /= TILE_SIZE;
+	x = Math.floor(x);
+	y = Math.floor(y);
+	// hidden row
+	y += 1;
+	
+	if (y<=0 || x<0 || x>= BOARD_WIDTH || y>=BOARD_HEIGHT){
+		x=-1;
+		y=-1;
+	}
+	
+	var obj = {
+		x: x,
+		y: y
+	}
+	return obj;
+}
+
+// Returns the distance between P1 and P2, which must each have
+// x and y properties.
+function distance(P1, P2) {
+    return sqrt(pow(P1.x - P2.x, 2) + pow(P1.y - P2.y, 2));
+}
+
+function onTouchMove(x, y, id) {
+    var tile;
+    
+    var bcoord = getBoardIndex(x,y);
+
+    var point;
+    point = makeObject();
+    point.x = x;
+    point.y = y;
+
+    if (touchID == id) {
+        // See which tile was touched
+        
+                
+                // getBoardIndex returns x=-1 if not on board
+                if (bcoord.x>=0) {
+
+                tile = board[bcoord.x][bcoord.y];
+                    
+                    // If the touch was moved really fast, or was due
+                    // to a mouse pointer that went outside the
+                    // window, the player could cheat and select two
+                    // tiles that aren't adjacent.  verify that this
+                    // tile is adjacent to the previous one
+                    // horizontally, vertically, or diagonally.
+                    
+                    if ((length(activeNumberLine) == 0) ||
+                        (distance(tile.center, activeNumberLine[length(activeNumberLine) - 1]) < TILE_SIZE * sqrt(2) * 1.1)) {
+
+                        // The click was on this tile
+                        tile.active = true;
+                        tile.state="active";
+                        activeNumber = activeNumber + tile.number;
+                        insertBack(activeNumberLine, tile.center);
+                        
+                        drawScreen();
+                        return;
+                    } // if adjacent
+                } // if on a tile
+        
+    }
+}
 
 function onFall(){
 	var x;
@@ -145,7 +221,7 @@ function onFall(){
 				
 				// if it's in the bottom row or the tile below it 
 				// has landed, mark the current tile as landed
-				if (y==BOARD_HEIGHT-1 || board[x][y+1].state=="landed"){
+				if (y==BOARD_HEIGHT-1 || board[x][y+1].state=="landed" || board[x][y+1].state=="active"){
 					board[x][y].state = "landed";
 				}
 			}
@@ -173,6 +249,9 @@ function initializeBoard() {
 	var y;
 	var tile;
 	var boardTL = boardTopLeft();
+	
+	
+   activeNumberLine = [];
 
 	// Create an array of columns
 	board = [];
@@ -218,6 +297,7 @@ function drawScreen() {
 	var bx;
 	var by;
 	var sideLength;
+	var i;
 
 	// Background
 	fillRectangle(0, 0, screenWidth, screenHeight, COLORS["background"]);
@@ -256,15 +336,15 @@ function drawScreen() {
 		bx = bx + 1;
 	}
 
-	/*// Draw the touch line
+	// Draw the touch line
 	i = 0;
-	while (i < length(activeWordLine) - 1) {
-		strokeLine(activeWordLine[i].x, activeWordLine[i].y,
-				   activeWordLine[i + 1].x, activeWordLine[i + 1].y,
+	while (i < length(activeNumberLine) - 1) {
+		strokeLine(activeNumberLine[i].x, activeNumberLine[i].y,
+				   activeNumberLine[i + 1].x, activeNumberLine[i + 1].y,
 				   LINE_COLOR, 40);
 				   
 		i = i + 1;
-	}*/
+	}
 }
 
 // top left x,y, width, and border
