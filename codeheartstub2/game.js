@@ -89,7 +89,16 @@ function onSetup() {
     timeLeft       = TOTAL_GAME_TIME;
     lastOnTickTime = currentTime();
     lastRedrawTime = 0;
-
+    alert("This game will test how skilled you are at reading binary numbers.\n\n" +
+        "Use the cursor to select two or more number tiles.\n\n" +
+        "Enter in your base 10 equivalent for the binary number displayed by your selected tiles.\n\n" +
+        "If your first submission is correct, your score will increase by the base 10 equivalent of your number.\n\n" +
+        "If you need more than one attempt to correctly give the base 10 conversion, " + 
+        "your score will increase based on the number of tiles used to display the binary value.\n\n" +
+        "As you prove your skill, the minimum length of the binary number you are required to select will increase.\n\n" + 
+        "(Note: You are always free to select a binary number that is LONGER than the required minimum length!)\n\n" +
+        "You have 90 seconds to prove your skill!\n\n\n" +
+        "GOOD LUCK!");
     resetBoard();
 }
 
@@ -435,7 +444,7 @@ function drawScreen() {
             // push the top down if active
             if (tile.active) {
                 offset = THICKNESS - 1;
-                color = makeColor(1, 1, 0.85);
+                color = makeColor(1, 1, 0.75);
             } else {
                 offset = 0;
                 color = makeColor(1, 1, 0.95);
