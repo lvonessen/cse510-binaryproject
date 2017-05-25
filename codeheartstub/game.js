@@ -9,9 +9,9 @@
 // DECLARE and INTIALIZE your constants here
 var START_TIME = currentTime();
 // amount of time, in seconds, before a tile falls down one slot
-var FALL_TIME = 0.5;
+var FALL_TIME = .1; //0.5;
 // time, in seconds, until the next tile gets generated
-var GEN_TIME = 1; 
+var GEN_TIME = .3; //1; 
 
 // In tiles
 var BOARD_SIZE	 = 4;
@@ -69,6 +69,9 @@ var selectedTiles;
 var touchID;
 
 var score;
+
+// used by keypad
+var conversionPrompt = "";
 
 ///////////////////////////////////////////////////////////////
 //													
@@ -135,17 +138,22 @@ function onTouchMove(x, y, id) {
 			// tile is adjacent to the previous one
 			// horizontally, vertically, or diagonally.
 			
-			if ((length(selectedTiles) == 0) ||
-				(distance(tile.center, selectedTiles[length(selectedTiles) - 1].center) < ADJ_BUFFER)) {
-	
-				// The click was on this tile
-				tile.selected = true;
-				tile.state="selected";
-				//selectedTiles = selectedTiles + tile.number;
-				insertBack(selectedTiles, tile);
-				
-				drawScreen();
-				return;
+			if ((selectedTiles.length == 0) ||
+				(distance(tile.center, selectedTiles[selectedTiles.length - 1].center) < ADJ_BUFFER)) {
+					
+				// can only select landed tiles
+				if (tile.state == "landed") {
+					// The click was on this tile
+					tile.selected = true;
+					tile.state="selected";
+					//selectedTiles = selectedTiles + tile.number;
+					
+					// insert it only if it's not in the list
+					insertNoDup(selectedTiles, tile);
+					
+					drawScreen();
+					return;
+				}
 			} // if adjacent
 		} // if on a tile
 	}
@@ -153,8 +161,11 @@ function onTouchMove(x, y, id) {
 
 // When a touch ends, show key pad
 function onTouchEnd(x, y, id) {
-	// show key pad
-	document.getElementById("show-key-pad").click();
+	// condition to show key pad
+	if (touchID == id && selectedTiles.length > 0) {
+		touchID = -1;
+		showKeyPad();
+	}
 }
 
 // Called 30 times or more per second
@@ -180,15 +191,13 @@ function onFall(){
 	var x;
 	var y;
 
-	x = 0;
-	while (x < BOARD_WIDTH) {
+	for (x = 0; x < BOARD_WIDTH; x++) {
 		
 		// we need to check y in direction 
 		// BOARD_HEIGHT to 0 
 		// to avoid having to track whether a 
 		// tile has already fallen this turn or not
-		y = BOARD_HEIGHT-1;
-		while (y > 0) {
+		for (y = BOARD_HEIGHT-1; y > 0; y --) {
 			
 			// check if the tile above should fall into this slot
 			if (board[x][y-1].state == "falling" && board[x][y].state == "empty"){
@@ -203,10 +212,7 @@ function onFall(){
 					board[x][y].state = "landed";
 				}
 			}
-			
-			y = y - 1;
 		} 
-		x = x + 1;
 	}
 }
 
@@ -239,17 +245,13 @@ function initializeBoard() {
 	board = [];
 	numTilesInCol = [];
 
-	x = 0;
-	while (x < BOARD_WIDTH) {
+	for (x = 0; x < BOARD_WIDTH; x ++) {
 		// Create this column
 		board[x] = [];
 		numTilesInCol[x]=0;
 		
-		y = 0;
-		while (y < BOARD_HEIGHT) {
+		for (y = 0; y < BOARD_HEIGHT; y ++) {
 			tile = makeObject();
-			tile.binary = ""; //could be 0, 1, or ""
-			tile.state = "empty";
 			
 			// Center of the tile in pixels
 			tile.center = makeObject();			
@@ -259,80 +261,110 @@ function initializeBoard() {
 			
 			board[x][y] = tile;
 			
-			y = y + 1;
-		} 
-		x = x + 1;
+			// set text, state
+			resetTile(tile);
+		}
 	}
+}
+
+function resetTile(tile){
+	tile.binary = ""; //could be 0, 1, or ""
+	tile.state = "empty";
+}
+
+function removeSelectedTiles(){
+	var bcoord;
+	var i = 0;
+	var by;
+	
+	for (i = 0; i < selectedTiles.length; i ++){
+		bcoord = getBoardIndex(selectedTiles[i].center.x,selectedTiles[i].center.y);
+		
+		// clear tile
+		resetTile(board[bcoord.x][bcoord.y]);
+		
+		// landed tiles above now need to continue falling
+		for (by = bcoord.y - 1; by >= 0; by --){
+			if (board[bcoord.x][by].state == "landed") {
+				board[bcoord.x][by].state = "falling";
+			}
+		}
+	}
+	
+	selectedTiles = [];
+}
+
+function resetSelectedTiles(){
+	var bcoord;
+	var i;
+	var by;
+	
+	for (i = 0; i < selectedTiles.length; i++){
+		bcoord = getBoardIndex(selectedTiles[i].center.x,selectedTiles[i].center.y);
+		
+		// set state back to landed
+		board[bcoord.x][bcoord.y].state="landed";
+	}
+
+	selectedTiles = [];
 }
 
 //////////////////////////////////////////////////////////////
 //														 						//
-//					 GAME LOGIC 					 						//
+//					 KEYPAD LOGIC 					 						//
+
+// show key pad
+function showKeyPad() {
+	conversionPrompt = "Enter decimal conversion for: "+asBinaryString(selectedTiles);
+	document.getElementById("show-key-pad").click();
+}
+
+// re-prompt
+function reShowKeyPad(){
+	conversionPrompt = "Incorrect. Enter a new conversion for: "+asBinaryString(selectedTiles);
+	document.getElementById("show-key-pad").click();
+}
+
+function onKeyPadCancel(){
+	resetSelectedTiles();
+}
 
 // jQuery keypad in play.html calls this method 
 function checkAns(decimal){
-// var binaryPrompt = "Enter in your decimal conversion for: " + toUpperCase(selectedTiles);
-//	var binaryBadPrompt = "That is incorrect. Enter in a new conversion for: " + toUpperCase(selectedTiles);
 
-	score = score + parseInt(decimal, 10);
-	drawScreen();
+	// TODO: comment out later
+	// score = score + parseInt(decimal, 10);
 
-	/*if (touchID == id) {
-		touchID = NONE;
-
-		// Was there a number entered?
-		if (length(selectedTiles) > 0) {
+	// Was there a number entered?
+	if (selectedTiles.length > 0) {
+		// Was it a good length?
+		if (true) {//(selectedTiles.length >= minLength) {
 			// Was it a good conversion?
-			if (length(selectedTiles) >= minLength) {
-				if (isCorrect(selectedTiles, decimal)) {
-					SHOW_BAD_NUMBER = 0;
-					nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-					phase		 = SHOW_GOOD_NUMBER;
+			if (isCorrect(asBinaryString(selectedTiles), decimal)) {
+				/*nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
+				if (SHOW_BAD_NUMBER == 0){*/
 					score = score + parseInt(decimal, 10);
-					if (minLength < maxLength) {
-						minLength = minLength + 1;
-					}
+				/*} else {
+					score = score + selectedTiles.length;
 				}
-				else {
-					SHOW_BAD_NUMBER = 1;
-					while (SHOW_BAD_NUMBER == 1) {
-						// Give player another chance to enter good guess
-						selectedDecimal = window.prompt(binaryBadPrompt);
-						decimal = selectedDecimal;
-						if (isCorrect(selectedTiles, decimal)) {
-							SHOW_BAD_NUMBER = 0;
-							nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-							phase		 = SHOW_GOOD_NUMBER;
-							score = score + length(selectedTiles);
-						}
-					}
-				}
+				if (minLength < maxLength) {
+					minLength = minLength + 1;
+				}*/
+				removeSelectedTiles();
+				//phase = SHOW_GOOD_NUMBER;
+				//SHOW_BAD_NUMBER = 0;					
 			}
 			else {
-				alert("You need to select a number that is " + minLength + " tiles long.");
-				resetBoard();
-			} 
+				//SHOW_BAD_NUMBER = 1;
+				reShowKeyPad();
+			}
 		}
-		drawScreen();
-	}*/
-}
-
-// Returns true iff the decimal entered is the correct translation of the binary value
-function isCorrect(selectedTiles,decimal) {
-	console.log(selectedTiles);
-	var l = length(selectedTiles);
-	var current = l - 1;
-	var currentValue = 1;
-	var totalValue = 0;
-	while (current > -1) {
-		if (selectedTiles[current].binary == "1") {
-			totalValue = totalValue + currentValue;
-		}
-		current = current - 1;
-		currentValue = currentValue * 2;
-
+		else {
+			alert("You need to select a number that is " + minLength + " tiles long.");
+			resetBoard();
+		} 
 	}
-	return totalValue == decimal;
+	drawScreen();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -368,11 +400,9 @@ function drawScreen() {
 	fillRectangle(boardTL.x-BORDER, boardTL.y-BORDER,2*BORDER+ BOARD_WIDTH*TILE_SIZE, 2*BORDER+(BOARD_HEIGHT-1)*TILE_SIZE, BORDER_COLOR, CORNER);
 
 	// Board
-	bx = 0;
-	while (bx < BOARD_WIDTH) {
+	for (bx = 0; bx < BOARD_WIDTH; bx ++) {
 
-		by = 1;
-		while (by < BOARD_HEIGHT) {
+		for (by = 1; by < BOARD_HEIGHT; by ++) {
 			tile = board[bx][by];
 			dim = convertxyCentered(tile.center.x,tile.center.y,TILE_SIZE,BORDER);
 
@@ -388,20 +418,14 @@ function drawScreen() {
 					 "" + round(TILE_SIZE * 0.65) + "px Times New Roman", 
 					 "center", 
 					 "middle");
-
-			by = by + 1;
 		}
-		bx = bx + 1;
 	}
 
 	// Draw the touch line
-	i = 0;
-	while (i < length(selectedTiles) - 1) {
+	for (i = 0; i < selectedTiles.length - 1; i++) {
 		strokeLine(selectedTiles[i].center.x, selectedTiles[i].center.y,
 				 selectedTiles[i + 1].center.x, selectedTiles[i + 1].center.y,
 				 LINE_COLOR, 40);
-				 
-		i = i + 1;
 	}
 }
 
@@ -464,9 +488,43 @@ function distance(P1, P2) {
 	return sqrt(pow(P1.x - P2.x, 2) + pow(P1.y - P2.y, 2));
 }
 
+function asBinaryString(tiles){
+	var str = "";
+	var i;
+	var l = tiles.length;
+	for (i = 0; i < l; i ++){
+		str += tiles[i].binary;	
+	}
+	return str;
+}
 
+// Returns true iff the decimal entered is the correct translation of the binary value
+function isCorrect(selectedString,decimal) {
+	var l = selectedString.length;
+	var current;
+	var currentValue = 1;
+	var totalValue = 0;
+	for (current = l - 1; current > -1; current --) {
+		if (selectedString[current] == "1") {
+			totalValue = totalValue + currentValue;
+		}
+		currentValue *= 2;
+	}
+	return totalValue == decimal;
+}
 
-
+function insertNoDup(list, element){
+	var insert = true;
+	var i;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] === element ) {
+			insert = false;		
+		}
+	}
+	if (insert) {
+		insertBack(list, element);
+	}
+}
 
 
 

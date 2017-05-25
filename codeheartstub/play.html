@@ -180,7 +180,7 @@
 			div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
 			div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
 			.ui-dialog .ui-state-error { padding: .3em; }
-			.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			.message { border: 1px solid transparent; padding: 0.3em; }
 			.keypadcell { display: inline; width: 80px; height: 80px; }
 		</style>
 		<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
@@ -191,7 +191,7 @@
 	 
 				num = $( "#num" ),
 				allFields = $( [] ).add( num ),
-				tips = $( ".validateTips" );
+				tips = $( ".message" );
 	 
 			function updateTips( t ) {
 				tips
@@ -237,6 +237,7 @@
 				close: function() {
 					form[ 0 ].reset();
 					allFields.removeClass( "ui-state-error" );
+					onKeyPadCancel();
 				}
 			});
 	 
@@ -248,6 +249,7 @@
 	 		// hidden button for game.js to click
 			$( "#show-key-pad" ).button().on( "click", function() {
 				dialog.dialog( "open" );
+				tips.text( conversionPrompt );
 			});
 			
 			$( "input[type=text].tags" ).val(function( index, value ) {
@@ -280,7 +282,7 @@
 		
 		<!-- The keypad pop-up -->
 		<div id="dialog-form" title="Convert to binary!">
-			<p class="validateTips">Value to convert: [binary val]</p> 
+			<p id="message" class="message">Value to convert: [binary val]</p> 
 		 
 			<form>
 				<fieldset>
