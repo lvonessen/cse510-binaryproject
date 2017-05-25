@@ -7,6 +7,7 @@
 //					CONSTANT STATE					
 
 // DECLARE and INTIALIZE your constants here
+// start
 var START_TIME = currentTime();
 // amount of time, in seconds, before a tile falls down one slot
 var FALL_TIME = .1; //0.5;
@@ -17,14 +18,14 @@ var GEN_TIME = .3; //1;
 var BOARD_SIZE	 = 4;
 
 // In pixels
-var TILE_SIZE	 = 150;
+var TILE_SIZE	 = 175;
 var KEY_SIZE	 = TILE_SIZE * 1.5;
 var HEADER_SIZE = 200;
 
 // Distance between adjacent tiles 
 var ADJ_BUFFER = TILE_SIZE * 1.1;// * sqrt(2);
 
-var BOARD_WIDTH = 8;
+var BOARD_WIDTH = 6;
 var BOARD_HEIGHT = 7;// visible height + 1 for the invisible "next tile" row
 var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 					"empty": makeColor(234/256, 240/256, 250/256), 
@@ -41,6 +42,7 @@ var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 
 var LINE_COLOR	 = makeColor(.5, .4, .3, 0.4);
 var GAME_NAME = "Binary Game" ;
+var TITLE_IMAGE_NAME = "title.png";
 
 ///////////////////////////////////////////////////////////////
 //													
@@ -72,6 +74,10 @@ var score;
 
 // used by keypad
 var conversionPrompt = "";
+
+// set up game (and make vertical)
+// "V" means vertical
+defineGame(GAME_NAME, "Laura Vonessen & Emilia Gan", TITLE_IMAGE_NAME, "V", false);
 
 ///////////////////////////////////////////////////////////////
 //													
@@ -316,13 +322,13 @@ function resetSelectedTiles(){
 
 // show key pad
 function showKeyPad() {
-	conversionPrompt = "Enter decimal conversion for: "+asBinaryString(selectedTiles);
+	conversionPrompt = "Enter decimal conversion for:\n"+prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
 // re-prompt
 function reShowKeyPad(){
-	conversionPrompt = "Incorrect. Enter a new conversion for: "+asBinaryString(selectedTiles);
+	conversionPrompt = "Incorrect. Enter a new conversion for:\n"+prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
@@ -441,12 +447,13 @@ function convertxyCentered(x,y,w,b) {
 }
 
 function boardTopLeft(){
+	var xMargin = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2;
 	var obj = {
 		// SW-TS*BW is the sum of horizontal margins (in pixels)
-		x: (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2,
+		x: xMargin,
 		// (SH-HS)...+HS leaves vertical space for a title
 		// BH-1 ignores row 0
-		y: ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
+		y: screenHeight - xMargin - TILE_SIZE * (BOARD_HEIGHT-1) //((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
 	}
 	return obj;
 }
@@ -495,6 +502,20 @@ function asBinaryString(tiles){
 	var l = tiles.length;
 	for (i = 0; i < l; i ++){
 		str += tiles[i].binary;	
+	}
+	return str;
+}
+
+function prettyBinaryString(str){
+	var i;
+	
+	// strip leading zeroes
+	while (str.length > 1 && str.charAt(0)=="0"){
+		str = str.slice(1);
+	}
+	
+	for (i = str.length - 3; i > 0; i -= 3){
+		str = str.slice(0,i) + " " + str.slice(i);
 	}
 	return str;
 }
