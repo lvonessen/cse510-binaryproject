@@ -209,7 +209,7 @@
 			function checkRegexp( o, regexp, n ) {
 				if ( !( regexp.test( o.val() ) ) ) {
 					o.addClass( "ui-state-error" );
-					//updateTips( n );
+					updateTips( n );
 					return false;
 				} else {
 					return true;
@@ -293,9 +293,11 @@
 				num.val( num.val().substr(0,num.val().length-1) );
 			});
 			
-			// mobile enter
+			// mobile enter--holy guacamole was this complicated.
+			// had to combine: https://stackoverflow.com/questions/11219582/how-to-detect-my-browser-version-and-operating-system-using-javascript
+			// and https://stackoverflow.com/questions/6545086/html-why-does-android-browser-show-go-instead-of-next-in-keyboard/10026173#10026173
 			$('#num').keydown(function (e){
-				if(e.keyCode == 9 && /Android/.test(navigator.userAgent)){
+				if(e.keyCode == 9 && navigator.userAgent.indexOf("Android") != -1 && (navigator.userAgent.indexOf("Chrome"))!=-1) {
 					$('#submitnow').trigger("click");
 				}
 			});
@@ -318,36 +320,36 @@
 			<form>
 				<fieldset>
 					<!--<label for="num">Value to convert: [binary val]</label>-->
-					<input type="number" name="num" id="num" value="" class="text ui-widget-content ui-corner-all" tabindex=1 /> <!--readonly>-->
+					<input type="number" name="num" id="num" value="" class="text ui-widget-content ui-corner-all"  /> <!--readonly>-->
 		 		
 					<div id="keypadToggle" class="keypadtoggle">
-						<input type="button" id="keypadToggleButton" value="Show keypad" class="ui-widget-content ui-corner-all togglebutton" tabindex=1/>
+						<input type="button" id="keypadToggleButton" value="Show keypad" class="ui-widget-content ui-corner-all togglebutton" />
 					</div>
 		 		
 					<div id="keypad" class="keypadform" style="display: none;"> <!--style="display:none; background:#AAA; vertical-align:top;">-->
 						<table style="width: 100%; height: 100%;">	
 							<tr> <!--style="height: 100px"-->		
-								<td><input type="button" id="key1" value="1" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key2" value="2" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key3" value="3" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								<td><input type="button" id="key1" value="1" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key2" value="2" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key3" value="3" class="ui-widget-content ui-corner-all keypadcell"  /><!--<br/>-->
 								</td>
 							</tr>
 							<tr>				
-								<td><input type="button" id="key4" value="4" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key5" value="5" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key6" value="6" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								<td><input type="button" id="key4" value="4" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key5" value="5" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key6" value="6" class="ui-widget-content ui-corner-all keypadcell"  /><!--<br/>-->
 								</td>
 							</tr>
 							<tr>				
-								<td><input type="button" id="key8" value="8" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key7" value="7" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key9" value="9" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								<td><input type="button" id="key8" value="8" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key7" value="7" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key9" value="9" class="ui-widget-content ui-corner-all keypadcell"  /><!--<br/>-->
 								</td>
 							</tr>
 							<tr>				
-								<td><input type="button" id="keyBack" value="&#x232B;" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="button" id="key0" value="0" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
-								</td><td><input type="submit" id="keyEnter" value="&#x23CE;" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								<td><input type="button" id="keyBack" value="&#x232B;" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="button" id="key0" value="0" class="ui-widget-content ui-corner-all keypadcell"  />
+								</td><td><input type="submit" id="keyEnter" value="&#x23CE;" class="ui-widget-content ui-corner-all keypadcell"  />
 								</td>
 							</tr>
 						</table>					
