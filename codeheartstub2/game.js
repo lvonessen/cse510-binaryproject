@@ -87,7 +87,7 @@ function onSetup() {
     maxLength      = 10;
     
     timeLeft       = TOTAL_GAME_TIME;
-    lastOnTickTime = currentTime();
+    
     lastRedrawTime = 0;
     alert("This game will test how skilled you are at reading binary numbers.\n\n" +
         "Use the cursor to select two or more number tiles.\n\n" +
@@ -99,6 +99,7 @@ function onSetup() {
         "(Note: You are always free to select a binary number that is LONGER than the required minimum length!)\n\n" +
         "You have 90 seconds to prove your skill!\n\n\n" +
         "GOOD LUCK!");
+    lastOnTickTime = currentTime();
     resetBoard();
 }
 
@@ -176,16 +177,19 @@ function onTouchEnd(x, y, id) {
         touchID = NONE;
 
         // Was there a number entered?
+        // CAN JUST CHANGE THIS TO MIN LENGTH? *****
         if (length(activeNumber) > 0) {
             // Was it a good conversion?
             if (length(activeNumber) >= minLength) {
+                // INCORPORATE LAURA'S KEYPAD *****
                 activeDecimal = window.prompt(binaryPrompt);
                 decimal = activeDecimal;
                 if (isCorrect(activeNumber, decimal)) {
-                    SHOW_BAD_NUMBER = 0;
-                    nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
+                    //SHOW_BAD_NUMBER = 0; <-- DON'T THINK I NEED THIS *****
                     phase         = SHOW_GOOD_NUMBER;
                     score = score + parseInt(decimal, 10);
+                    drawScreen();
+                    nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
                     if (minLength < maxLength) {
                         minLength = minLength + 1;
                     }
@@ -201,16 +205,18 @@ function onTouchEnd(x, y, id) {
                             nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
                             phase         = SHOW_GOOD_NUMBER;
                             score = score + length(activeNumber);
+                            drawScreen();
                         }
                     }
                 }
             }
             else {
                 alert("You need to select a number that is " + minLength + " tiles long.");
-                resetBoard();
+                //resetBoard();
             } 
         }
-        drawScreen();
+        //resetBoard();
+        //drawScreen();
     }
 }
 
@@ -403,7 +409,7 @@ function drawScreen() {
     var offset;
     var color;
     var i;
-    var displayString = toUpperCase(activeNumber) +  " = " + toUpperCase(activeDecimal);
+    var displayEqualString = toUpperCase(activeNumber) +  " = " + toUpperCase(activeDecimal);
     var displayScoreString = "Score: " + score;
 
     // Background
@@ -413,7 +419,7 @@ function drawScreen() {
 
     if (phase == SHOW_GOOD_NUMBER) {
 
-        fillText(displayString, screenWidth / 2, 130, makeColor(0.1, 0.6, 0.3),
+        fillText(displayEqualString, screenWidth / 2, 130, makeColor(0.1, 0.6, 0.3),
                  "bold 115px Times New Roman", "center", "top");
     }
 
