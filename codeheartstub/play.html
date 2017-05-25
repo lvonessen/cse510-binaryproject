@@ -193,9 +193,9 @@
 				num = $( "#num" ),
 				allFields = $( [] ).add( num ),
 				tips = $( ".message" ),
-				tallHeight = 450, shortHeight = 250, curHeight = shortHeight,
-				showKeypad = false;
-	 
+				tallHeight = 475, shortHeight = 250, curHeight = shortHeight,
+				showKeypad = false, firstTime = true;
+				
 			function updateTips( t ) {
 				tips
 					.text( t )
@@ -250,9 +250,17 @@
 			});
 	 
 	 		// hidden button for game.js to click
-			$( "#show-key-pad" ).button().on( "click", function() {
+			$( "#show-key-pad" ).button().on( "click", function() {	
+				// ios shows keyboard --> show custom keypad by default
+				if (navigator.userAgent.indexOf("like Mac") != -1){
+					if (firstTime && !showKeypad) {
+						toggleKeypad();
+					}
+					$( "#num" ).attr('readonly', true);
+				}			
 				dialog.dialog( "open" );
 				tips.text( conversionPrompt );
+				firstTime = false;
 			});
 			
 			$( "input[type=text].tags" ).val(function( index, value ) {
@@ -273,9 +281,7 @@
 				dialog.dialog("option", "height", curHeight);
 			}
 			
-			// show/hide keypad
-			$( "#keypadToggleButton" ).button().on("click", function() {
-				
+			function toggleKeypad(){				
 				showKeypad = ! showKeypad;
 				
 				if ( showKeypad ){
@@ -286,6 +292,11 @@
 					$( "#keypadToggleButton" ).val("Show keypad");
 				}
 				changeHeight();
+			}
+			
+			// show/hide keypad
+			$( "#keypadToggleButton" ).button().on("click", function() {
+				toggleKeypad();
 			});
 			
 			// backspace
@@ -293,7 +304,8 @@
 				num.val( num.val().substr(0,num.val().length-1) );
 			});
 			
-			// mobile enter--holy guacamole was this complicated.
+			// android chrome's keypad's arrow tabs instead of enters:
+			//  --> holy guacamole was this complicated
 			// had to combine: https://stackoverflow.com/questions/11219582/how-to-detect-my-browser-version-and-operating-system-using-javascript
 			// and https://stackoverflow.com/questions/6545086/html-why-does-android-browser-show-go-instead-of-next-in-keyboard/10026173#10026173
 			$('#num').keydown(function (e){
