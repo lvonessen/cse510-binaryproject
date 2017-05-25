@@ -110,6 +110,7 @@ function onTouchStart(x, y, id) {
 	touchID = id;
 	if (paused) {
 		togglePause();
+		onTouchMove(x,y,id);
 	} else {
 		var bcoord = getBoardIndex(x,y);
 		if (bcoord.x == -1){

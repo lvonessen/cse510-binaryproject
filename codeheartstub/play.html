@@ -181,17 +181,20 @@
 			div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
 			.ui-dialog .ui-state-error { padding: .3em; }
 			.message { border: 1px solid transparent; padding: 0.3em; }
-			.keypadcell { display: inline; width: 80px; height: 80px; }
+			.keypadcell { display: inline; align-self: center; width: 83px; height: 50px; margin: /* t/b r/l */ 0;}
+			.togglebutton { width: 100%; height: 50px; margin: /* t/b r/l */ 0;}
+			.keypadform { width: 100%; height: 100%; overflow: hidden;}
 		</style>
 		<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 		<script>
 		$( function() {
 			var dialog, form,
-	 
 				num = $( "#num" ),
 				allFields = $( [] ).add( num ),
-				tips = $( ".message" );
+				tips = $( ".message" ),
+				tallHeight = 450, shortHeight = 250, curHeight = shortHeight,
+				showKeypad = false;
 	 
 			function updateTips( t ) {
 				tips
@@ -206,7 +209,7 @@
 			function checkRegexp( o, regexp, n ) {
 				if ( !( regexp.test( o.val() ) ) ) {
 					o.addClass( "ui-state-error" );
-					updateTips( n );
+					//updateTips( n );
 					return false;
 				} else {
 					return true;
@@ -231,8 +234,8 @@
 	 
 			dialog = $( "#dialog-form" ).dialog({
 				autoOpen: false, // : change here to make it open right away or only with button click
-				height: 500,
-				width: 350,
+				height: curHeight,
+				width: 300,
 				modal: true,
 				close: function() {
 					form[ 0 ].reset();
@@ -264,9 +267,37 @@
 				$( "#num" ).focus();
 			});
 			
+			// change height
+			function changeHeight(){
+				curHeight = tallHeight + shortHeight - curHeight;
+				dialog.dialog("option", "height", curHeight);
+			}
+			
+			// show/hide keypad
+			$( "#keypadToggleButton" ).button().on("click", function() {
+				
+				showKeypad = ! showKeypad;
+				
+				if ( showKeypad ){
+					$( "#keypad" ).css("display", "block");
+					$( "#keypadToggleButton" ).val("Hide keypad");
+				} else {
+					$( "#keypad" ).css("display", "none");
+					$( "#keypadToggleButton" ).val("Show keypad");
+				}
+				changeHeight();
+			});
+			
 			// backspace
 			$( "#keyBack" ).button().on( "click", function() {
 				num.val( num.val().substr(0,num.val().length-1) );
+			});
+			
+			// mobile enter
+			$('#num').keydown(function (e){
+				if(e.keyCode == 9 && /Android/.test(navigator.userAgent)){
+					$('#submitnow').trigger("click");
+				}
 			});
 			
 		} );
@@ -287,25 +318,43 @@
 			<form>
 				<fieldset>
 					<!--<label for="num">Value to convert: [binary val]</label>-->
-					<input type="number" name="num" id="num" value="" class="text ui-widget-content ui-corner-all">
+					<input type="number" name="num" id="num" value="" class="text ui-widget-content ui-corner-all" tabindex=1 /> <!--readonly>-->
 		 		
-					<div id="keypad"> <!--style="display:none; background:#AAA; vertical-align:top;">-->
-					<input type="button" id="key1" value="1" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key2" value="2" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key3" value="3" class="ui-widget-content ui-corner-all keypadcell"/><br/>
-					<input type="button" id="key4" value="4" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key5" value="5" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key6" value="6" class="ui-widget-content ui-corner-all keypadcell"/><br/>
-					<input type="button" id="key7" value="7" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key8" value="8" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key9" value="9" class="ui-widget-content ui-corner-all keypadcell"/><br/>
-					<input type="button" id="keyBack" value="&#x232B;" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="button" id="key0" value="0" class="ui-widget-content ui-corner-all keypadcell"/>
-					<input type="submit" id="keyEnter" value="&#x23CE;" class="ui-widget-content ui-corner-all keypadcell"/>
+					<div id="keypadToggle" class="keypadtoggle">
+						<input type="button" id="keypadToggleButton" value="Show keypad" class="ui-widget-content ui-corner-all togglebutton" tabindex=1/>
+					</div>
+		 		
+					<div id="keypad" class="keypadform" style="display: none;"> <!--style="display:none; background:#AAA; vertical-align:top;">-->
+						<table style="width: 100%; height: 100%;">	
+							<tr> <!--style="height: 100px"-->		
+								<td><input type="button" id="key1" value="1" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key2" value="2" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key3" value="3" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								</td>
+							</tr>
+							<tr>				
+								<td><input type="button" id="key4" value="4" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key5" value="5" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key6" value="6" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								</td>
+							</tr>
+							<tr>				
+								<td><input type="button" id="key8" value="8" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key7" value="7" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key9" value="9" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 /><!--<br/>-->
+								</td>
+							</tr>
+							<tr>				
+								<td><input type="button" id="keyBack" value="&#x232B;" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="button" id="key0" value="0" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td><td><input type="submit" id="keyEnter" value="&#x23CE;" class="ui-widget-content ui-corner-all keypadcell" tabindex=1 />
+								</td>
+							</tr>
+						</table>					
 					</div>	
 		 		
 					<!-- Allow form submission with keyboard without duplicating the dialog button -->
-					<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+					<input type="submit" id="submitnow" tabindex="-1" style="position:absolute; top:-1000px">
 				</fieldset>
 			</form>
 		</div>
