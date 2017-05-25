@@ -1,9 +1,9 @@
 <!DOCTYPE html
-          PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+					PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+					"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html oncontextmenu="return false">
-  <head>
-<meta charset="utf-8"/><!-- must be in the first 1024 bytes -->    
+	<head>
+<meta charset="utf-8"/><!-- must be in the first 1024 bytes -->		
 <!-- 
 
 
@@ -16,14 +16,11 @@
 
 
 
-   You should not change this file unless you intentionally are doing
-   really advanced work.
+	 You should not change this file unless you intentionally are doing
+	 really advanced work.
 
 
-   You probably want to change the code in game.js instead.
-
-
-
+	 You probably want to change the code in game.js instead.
 
 
 
@@ -33,149 +30,287 @@
 
 
 
-   This is Open Source under the BSD license: http://www.opensource.org/licenses/bsd-license.php
 
-   Copyright (c) 2012-2017, Morgan McGuire
-   All rights reserved.
 
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions
-   are met:
 
-   Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-   Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the
-   distribution.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
-   AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-   INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
-   BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-   OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-   OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-   USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-   DAMAGE.
+	 This is Open Source under the BSD license: http://www.opensource.org/licenses/bsd-license.php
+
+	 Copyright (c) 2012-2017, Morgan McGuire
+	 All rights reserved.
+
+	 Redistribution and use in source and binary forms, with or without
+	 modification, are permitted provided that the following conditions
+	 are met:
+
+	 Redistributions of source code must retain the above copyright
+	 notice, this list of conditions and the following disclaimer.
+	 Redistributions in binary form must reproduce the above copyright
+	 notice, this list of conditions and the following disclaimer in the
+	 documentation and/or other materials provided with the
+	 distribution.	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+	 AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+	 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+	 MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+	 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+	 BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+	 OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+	 PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+	 PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+	 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+	 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+	 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+	 DAMAGE.
 -->
-    <title>Game</title>
+		<title>Game</title>
 
-    <meta http-equiv="content-script-type" content="text/javascript"/>
-    <!-- Prevent Chrome from caching the game.js file and thus preventing its reloading when debugging -->
-    <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE"/>
-    <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-STORE"/>
-    <meta HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE"/>
+		<meta http-equiv="content-script-type" content="text/javascript"/>
+		<!-- Prevent Chrome from caching the game.js file and thus preventing its reloading when debugging -->
+		<meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE"/>
+		<meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-STORE"/>
+		<meta HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE"/>
 
-    <!-- iOS/mobile Settings.  Do not set width and height based on
-         device-width and device-height; that makes assumptions about
-         orientation -->
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
-    <meta name="apple-touch-fullscreen" content="yes" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
+		<!-- iOS/mobile Settings.	Do not set width and height based on
+				 device-width and device-height; that makes assumptions about
+				 orientation -->
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+		<meta name="apple-mobile-web-app-capable" content="yes"/>
+		<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+		<meta name="apple-touch-fullscreen" content="yes" />
+		<meta name="format-detection" content="telephone=no" />
+		<meta name="msapplication-tap-highlight" content="no" />
 
-    <style type="text/css">
-      /* Prevent selection on touch screens during touch events */
-      *:not(input):not(textarea) {
-        -webkit-user-select: none; /* disable selection/Copy of UIWebView */
-        -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
-        -moz-user-select: none;
-        -ms-user-select: none;   
-        user-select: none;
-      }
+		<style type="text/css">
+			/* Prevent selection on touch screens during touch events */
+			*:not(input):not(textarea) {
+				-webkit-user-select: none; /* disable selection/Copy of UIWebView */
+				-webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+				-moz-user-select: none;
+				-ms-user-select: none;	 
+				user-select: none;
+			}
 
-      * {
-        -webkit-tap-highlight-color: transparent;
-      }
+			* {
+				-webkit-tap-highlight-color: transparent;
+			}
 
-      body {
-         margin: 0px; 
-         background: #000;
-         height: 100%;
-         overflow:hidden;
-      }
-    </style>
+			body {
+				 margin: 0px; 
+				 background: #000;
+				 height: 100%;
+				 overflow:hidden;
+			}
+		</style>
 
-    <!-- Browser compatibility -->
-    <script>
-      if ((navigator.userAgent.toLowerCase().indexOf('safari') == -1) &&
-          (navigator.userAgent.toLowerCase().indexOf('chrome') == -1) &&
-          (navigator.userAgent.toLowerCase().indexOf('iphone') == -1) &&
-          (navigator.userAgent.toLowerCase().indexOf('ipad') == -1) &&
-          (navigator.userAgent.toLowerCase().indexOf('ipod') == -1) &&
-          (navigator.userAgent.toLowerCase().indexOf('.net clr') == -1) &&
-          (navigator.appName.toLowerCase().indexOf('internet explorer') == -1) &&
-          (navigator.userAgent.indexOf("Firefox") == -1)) {
+		<!-- Browser compatibility -->
+		<script>
+			if ((navigator.userAgent.toLowerCase().indexOf('safari') == -1) &&
+					(navigator.userAgent.toLowerCase().indexOf('chrome') == -1) &&
+					(navigator.userAgent.toLowerCase().indexOf('iphone') == -1) &&
+					(navigator.userAgent.toLowerCase().indexOf('ipad') == -1) &&
+					(navigator.userAgent.toLowerCase().indexOf('ipod') == -1) &&
+					(navigator.userAgent.toLowerCase().indexOf('.net clr') == -1) &&
+					(navigator.appName.toLowerCase().indexOf('internet explorer') == -1) &&
+					(navigator.userAgent.indexOf("Firefox") == -1)) {
 
-          // Note that Chrome reports itself as Safari on Mac and full-screen
-          // iOS webapps report themselves as 'iPhone'
-      
-          alert("Please run this game in Internet Explorer 9, Chrome 25.0, Safari 6.0.2, " +
-                "the iOS 5.1 Safari web browser, Firefox 19.0, or a newer browser.");
-      }
+					// Note that Chrome reports itself as Safari on Mac and full-screen
+					// iOS webapps report themselves as 'iPhone'
+			
+					alert("Please run this game in Internet Explorer 9, Chrome 25.0, Safari 6.0.2, " +
+								"the iOS 5.1 Safari web browser, Firefox 19.0, or a newer browser.");
+			}
 
-      var _ch_PLAY_VERSION = 1.66;
-      
-      // Make several attempts to load the codeheart.js library from different locations.
-      var _ch_sourceURL;
+			var _ch_PLAY_VERSION = 1.66;
+			
+			// Make several attempts to load the codeheart.js library from different locations.
+			var _ch_sourceURL;
 
-      /** This must be called from its own script tag because it emits code 
-          for other script tags. */
-      function tryToLoad(url) {
-         if (typeof codeheart === 'undefined') {
-            // Previous attempts failed to load the script.  Try another location.
-            // We can't allow the script tag itself to appear as a string in the source
-            // code, so this is broken across multiple strings.
+			/** This must be called from its own script tag because it emits code 
+					for other script tags. */
+			function tryToLoad(url) {
+				 if (typeof codeheart === 'undefined') {
+						// Previous attempts failed to load the script.	Try another location.
+						// We can't allow the script tag itself to appear as a string in the source
+						// code, so this is broken across multiple strings.
 
-            document.write('<scr' + 'ipt src="' + url + '?refresh=1" charset="utf-8" type="text/javascript"></scr' + 'ipt>'); 
+						document.write('<scr' + 'ipt src="' + url + '?refresh=1" charset="utf-8" type="text/javascript"></scr' + 'ipt>'); 
 
-            // Assume success
-            _ch_sourceURL = url;
-         } 
-      }
-    </script>
-    <script>tryToLoad("codeheart.js");</script>
-    <script>tryToLoad("codeheart.min.js");</script>
-    <script>tryToLoad("../codeheart.js");</script>
-    <script>tryToLoad("../codeheart.min.js");</script>
-    <script>tryToLoad("../../codeheart.js");</script>
-    <script>tryToLoad("../../codeheart.min.js");</script>
-    <script>tryToLoad("../../../codeheart.js");</script>
-    <script>tryToLoad("../../../codeheart.min.js");</script>
-    <script>tryToLoad("https://casual-effects.com/codeheart/" + (Math.floor(_ch_PLAY_VERSION * 10) / 10) + "/codeheart.min.js");</script>
+						// Assume success
+						_ch_sourceURL = url;
+				 } 
+			}
+		</script>
+		<script>tryToLoad("codeheart.js");</script>
+		<script>tryToLoad("codeheart.min.js");</script>
+		<script>tryToLoad("../codeheart.js");</script>
+		<script>tryToLoad("../codeheart.min.js");</script>
+		<script>tryToLoad("../../codeheart.js");</script>
+		<script>tryToLoad("../../codeheart.min.js");</script>
+		<script>tryToLoad("../../../codeheart.js");</script>
+		<script>tryToLoad("../../../codeheart.min.js");</script>
+		<script>tryToLoad("https://casual-effects.com/codeheart/" + (Math.floor(_ch_PLAY_VERSION * 10) / 10) + "/codeheart.min.js");</script>
 
-    <script>
-       console.clear();
+		<script>
+			 console.clear();
 
-       if (typeof codeheart === 'undefined') {
-           alert("You have to put codeheart.js in this directory, (" + window.location +
-                 ") put it in the " + 
-                 "parent directory, or have an internet connection.");
-       } else {
-           var s = "_______________________________________________________";
-           console.log(s + s);
-           console.log("\n");
-           console.log("Running codeheart.js version " + codeheart.VERSION + " from " + _ch_sourceURL);
-           console.log("Running play.html version " + _ch_PLAY_VERSION + " from " + window.location);
-           console.log("Running game at " + ('' + window.location).substr(0, ('' + window.location).length - 'play.html'.length) + 'game.js');
-           console.log("on " + navigator.userAgent);
-           console.log("\n");
-           console.log(s + s);
-       }
-    </script>
+			 if (typeof codeheart === 'undefined') {
+					 alert("You have to put codeheart.js in this directory, (" + window.location +
+								 ") put it in the " + 
+								 "parent directory, or have an internet connection.");
+			 } else {
+					 var s = "_______________________________________________________";
+					 console.log(s + s);
+					 console.log("\n");
+					 console.log("Running codeheart.js version " + codeheart.VERSION + " from " + _ch_sourceURL);
+					 console.log("Running play.html version " + _ch_PLAY_VERSION + " from " + window.location);
+					 console.log("Running game at " + ('' + window.location).substr(0, ('' + window.location).length - 'play.html'.length) + 'game.js');
+					 console.log("on " + navigator.userAgent);
+					 console.log("\n");
+					 console.log(s + s);
+			 }
+		</script>
+		
+		<!-- Keypad modified from http://jqueryui.com/dialog/#modal-form -->
+		<link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+		<style>
+			label, input { display:block; }
+			input.text { margin-bottom:12px; width:95%; padding: .4em; }
+			fieldset { padding:0; border:0; margin-top:25px; }
+			h1 { font-size: 1.2em; margin: .6em 0; }
+			div#users-contain { width: 350px; margin: 20px 0; }
+			div#users-contain table { margin: 1em 0; border-collapse: collapse; width: 100%; }
+			div#users-contain table td, div#users-contain table th { border: 1px solid #eee; padding: .6em 10px; text-align: left; }
+			.ui-dialog .ui-state-error { padding: .3em; }
+			.validateTips { border: 1px solid transparent; padding: 0.3em; }
+			.keypadcell { display: inline; width: 80px; height: 80px; }
+		</style>
+		<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+		<script>
+		$( function() {
+			var dialog, form,
+	 
+				num = $( "#num" ),
+				allFields = $( [] ).add( num ),
+				tips = $( ".validateTips" );
+	 
+			function updateTips( t ) {
+				tips
+					.text( t )
+					.addClass( "ui-state-highlight" );
+				setTimeout(function() {
+					tips.removeClass( "ui-state-highlight", 1500 );
+				}, 500 );
+			}
+	 
+	 		// really want??
+			function checkRegexp( o, regexp, n ) {
+				if ( !( regexp.test( o.val() ) ) ) {
+					o.addClass( "ui-state-error" );
+					updateTips( n );
+					return false;
+				} else {
+					return true;
+				}
+			}
+	
+			// called on "submit" click		
+			function submitKeyPad() {
+				var valid = true;
+				allFields.removeClass( "ui-state-error" );
+	 
+				valid = valid && checkRegexp( num, /^([0-9])+$/, "Number must consist of digits 0-9" );
+	 
+				if ( valid ) {
+					// hidden field for game.js to use
+					$( "#keyPadResult" ).val(num.val());
+					checkAns(num.val());
+					dialog.dialog( "close" );
+				}
+				return valid;
+			}
+	 
+			dialog = $( "#dialog-form" ).dialog({
+				autoOpen: false, // : change here to make it open right away or only with button click
+				height: 500,
+				width: 350,
+				modal: true,
+				close: function() {
+					form[ 0 ].reset();
+					allFields.removeClass( "ui-state-error" );
+				}
+			});
+	 
+			form = dialog.find( "form" ).on( "submit", function( event ) {
+				event.preventDefault();
+				submitKeyPad();
+			});
+	 
+	 		// hidden button for game.js to click
+			$( "#show-key-pad" ).button().on( "click", function() {
+				dialog.dialog( "open" );
+			});
+			
+			$( "input[type=text].tags" ).val(function( index, value ) {
+				return value.trim();
+			});
+			
+			// normal click behavior for keypadcell(s)
+			$( '.keypadcell' ).button().on( "click", function() {
+				if ($(this).attr('id')!="keyBack" && $(this).attr('id')!="keyEnter"){
+					num.val( num.val()+$(this).val());
+				}
+				$( "#num" ).focus();
+			});
+			
+			// backspace
+			$( "#keyBack" ).button().on( "click", function() {
+				num.val( num.val().substr(0,num.val().length-1) );
+			});
+			
+		} );
+		</script>
 
-  </head>
+	</head>
 
-  <body oncontextmenu="return false" onload="_ch_onLoad();">
-    <script>_ch_makeCanvas();</script>
+	<body oncontextmenu="return false" onload="_ch_onLoad();">
+		<script>_ch_makeCanvas();</script>
 
-    <!-- The game code -->
-    <script src="game.js?refresh=1" type="text/javascript"></script>
-  </body>
+		<!-- The game code -->
+		<script src="game.js?refresh=1" type="text/javascript"></script>
+		
+		<!-- The keypad pop-up -->
+		<div id="dialog-form" title="Convert to binary!">
+			<p class="validateTips">Value to convert: [binary val]</p> 
+		 
+			<form>
+				<fieldset>
+					<!--<label for="num">Value to convert: [binary val]</label>-->
+					<input type="number" name="num" id="num" value="" class="text ui-widget-content ui-corner-all">
+		 		
+					<div id="keypad"> <!--style="display:none; background:#AAA; vertical-align:top;">-->
+					<input type="button" id="key1" value="1" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key2" value="2" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key3" value="3" class="ui-widget-content ui-corner-all keypadcell"/><br/>
+					<input type="button" id="key4" value="4" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key5" value="5" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key6" value="6" class="ui-widget-content ui-corner-all keypadcell"/><br/>
+					<input type="button" id="key7" value="7" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key8" value="8" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key9" value="9" class="ui-widget-content ui-corner-all keypadcell"/><br/>
+					<input type="button" id="keyBack" value="&#x232B;" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="button" id="key0" value="0" class="ui-widget-content ui-corner-all keypadcell"/>
+					<input type="submit" id="keyEnter" value="&#x23CE;" class="ui-widget-content ui-corner-all keypadcell"/>
+					</div>	
+		 		
+					<!-- Allow form submission with keyboard without duplicating the dialog button -->
+					<input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+				</fieldset>
+			</form>
+		</div>
+		
+		<div id="hidden-input-form" style="position:absolute; top:-1000px">
+			<input type="button" id="show-key-pad" value="show-key-pad"/>
+		</div>
+	</body>
 
 </html>
