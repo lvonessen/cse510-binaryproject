@@ -193,7 +193,8 @@
 				num = $( "#num" ),
 				allFields = $( [] ).add( num ),
 				tips = $( ".message" ),
-				tallHeight = 475, shortHeight = 250, curHeight = shortHeight,
+				promptNum = $( "#promptNum" ),
+				tallHeight = 500, shortHeight = 275, curHeight = shortHeight,
 				showKeypad = false, firstTime = true;
 				
 			function updateTips( t ) {
@@ -224,10 +225,14 @@
 				valid = valid && checkRegexp( num, /^([0-9])+$/, "Number must consist of digits 0-9" );
 	 
 				if ( valid ) {
-					// hidden field for game.js to use
-					$( "#keyPadResult" ).val(num.val());
-					checkAns(num.val());
-					dialog.dialog( "close" );
+					valid = checkAns(num.val());
+					if ( valid ) {
+						dialog.dialog( "close" );
+						setPaused(false);
+					} else {
+						num.val( "" );
+						updateTips( CONVERSION_REPROMPT );
+					}
 				}
 				return valid;
 			}
@@ -259,7 +264,8 @@
 					$( "#num" ).attr('readonly', true);
 				}			
 				dialog.dialog( "open" );
-				tips.text( conversionPrompt );
+				tips.text( CONVERSION_PROMPT );
+				promptNum.html( binaryString ); 
 				firstTime = false;
 			});
 			
@@ -327,7 +333,8 @@
 		
 		<!-- The keypad pop-up -->
 		<div id="dialog-form" title="Convert to binary!">
-			<p id="message" class="message">Value to convert: <br/>[binary val]</p> 
+			<p id="message" class="message">[prompt message]</p> 
+			<p id="promptNum" style="text-align: right;">[binary val]</p>
 		 
 			<form>
 				<fieldset>

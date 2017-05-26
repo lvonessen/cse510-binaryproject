@@ -44,6 +44,10 @@ var LINE_COLOR	 = makeColor(.5, .4, .3, 0.4);
 var GAME_NAME = "Binary Game" ;
 var TITLE_IMAGE_NAME = "title.png";
 
+
+var CONVERSION_PROMPT = "Enter decimal conversion for:";
+var CONVERSION_REPROMPT = "Incorrect. Please try again:";
+
 ///////////////////////////////////////////////////////////////
 //													
 //					 MUTABLE STATE					
@@ -74,6 +78,7 @@ var score;
 
 // used by keypad
 var conversionPrompt = "";
+var binaryString;
 
 // set up game (and make vertical)
 // "V" means vertical
@@ -98,6 +103,12 @@ function onSetup() {
 function onKeyStart(key) {
 	lastKeyCode = key;
 	if (key == 32){
+		togglePause();
+	}
+}
+
+function setPaused(newPause){
+	if (paused != newPause ){
 		togglePause();
 	}
 }
@@ -171,6 +182,7 @@ function onTouchEnd(x, y, id) {
 	// condition to show key pad
 	if (touchID == id && selectedTiles.length > 0) {
 		touchID = -1;
+		setPaused(true);
 		showKeyPad();
 	}
 }
@@ -322,13 +334,13 @@ function resetSelectedTiles(){
 
 // show key pad
 function showKeyPad() {
-	conversionPrompt = "Enter decimal conversion for:\n"+prettyBinaryString(asBinaryString(selectedTiles));
+	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
 // re-prompt
 function reShowKeyPad(){
-	conversionPrompt = "Incorrect. Enter a new conversion for:\n"+prettyBinaryString(asBinaryString(selectedTiles));
+	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
@@ -339,39 +351,16 @@ function onKeyPadCancel(){
 // jQuery keypad in play.html calls this method 
 function checkAns(decimal){
 
-	// TODO: comment out later
-	// score = score + parseInt(decimal, 10);
-
 	// Was there a number entered?
 	if (selectedTiles.length > 0) {
-		// Was it a good length?
-		if (true) {//(selectedTiles.length >= minLength) {
-			// Was it a good conversion?
-			if (isCorrect(asBinaryString(selectedTiles), decimal)) {
-				/*nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-				if (SHOW_BAD_NUMBER == 0){*/
-					score = score + parseInt(decimal, 10);
-				/*} else {
-					score = score + selectedTiles.length;
-				}
-				if (minLength < maxLength) {
-					minLength = minLength + 1;
-				}*/
-				removeSelectedTiles();
-				//phase = SHOW_GOOD_NUMBER;
-				//SHOW_BAD_NUMBER = 0;					
-			}
-			else {
-				//SHOW_BAD_NUMBER = 1;
-				reShowKeyPad();
-			}
+		// Was it a good conversion?
+		if (isCorrect(asBinaryString(selectedTiles), decimal)) {
+			score = score + parseInt(decimal, 10);
+			removeSelectedTiles();
+			return true;
 		}
-		else {
-			alert("You need to select a number that is " + minLength + " tiles long.");
-			resetBoard();
-		} 
 	}
-	drawScreen();
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////
@@ -517,7 +506,7 @@ function prettyBinaryString(str){
 	for (i = str.length - 3; i > 0; i -= 3){
 		str = str.slice(0,i) + " " + str.slice(i);
 	}
-	return str;
+	return str + "<sub>2</sub>";
 }
 
 // Returns true iff the decimal entered is the correct translation of the binary value
