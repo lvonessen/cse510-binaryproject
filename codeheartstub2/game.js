@@ -1,11 +1,30 @@
-// binarytrace/game.js
+// binaryTrace/game.js
 //
-// Prototype game for teaching counting in binary.
+// Prototype game, showing how to count in binary.
+
+// TODO:
+// Sounds
+// Pause
+// Wildcard
+// Size to screen for iPhone
+// More points for changing direction
+// High scores
+
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
 //                    CONSTANT STATE                         //
 
+
+
+var BACKGROUND_IMAGE          = loadImage("background.png");
+
+var INACTIVE_IMAGE      = loadImage("regular-button.png");
+var INACTIVE_BONUS_IMAGE  = loadImage("bonus-button.png");
+var ACTIVE_IMAGE    = loadImage("active-button.png");
+var ACTIVE_BONUS_IMAGE        = ACTIVE_IMAGE;
+
+var GAME_OVER_IMAGE           = loadImage("gameover.png");
 
 // In tiles
 var BOARD_SIZE     = 4;
@@ -13,107 +32,155 @@ var BOARD_SIZE     = 4;
 // In pixels
 var TILE_SIZE      = 240;
 
-// Percentages from http://en.wikipedia.org/wiki/Letter_frequency,
-// adjusted to add up to 100 after rounding
-// Percentages from http://en.wikipedia.org/wiki/Letter_frequency,
-// adjusted to add up to 100 after rounding
+// Percentages should add up to 100 after rounding.  
 var NUMBER_FREQUENCY =
-    //0   1   
+    //0  1  
     [40, 60];
 
 var NONE           = -1;
 
-var SHOW_NUMBER_TIME = 1.5; // seconds
-var TOTAL_GAME_TIME = 90; // seconds
-
+// Valid phase values:
 var PLAYING        = 0;
-var SHOW_GOOD_NUMBER = 1;
+var TRANSITION     = 1;
 var GAME_OVER      = 2;
 var SHOW_BAD_NUMBER = 0;
+var SHOW_GOOD_NUMBER = 1;
+var SHOW_NUMBER_TIME = 1.5; // seconds
+
+// Will return to PLAYING
+var PAUSED         = 3;
+
+var ANIMATE_TRANSITION_TIME = 0.4; // seconds
 
 var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 
+var NUMBER_STYLE  = "100px Times New Roman";
 
+var GOOD_GUESS = "";
+var BAD_GUESS = "";
+
+var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
+var MAX_BAD_NUMBERS  = 3;
+
+var TOTAL_GAME_TIME = 60; // seconds
+
+var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
 //                     MUTABLE STATE                         //
 
+// Player's current points
 var score;
 
-// PLAYING or SCORING
+// PLAYING or TRANSITION
 var phase;
 
+// Auto-advance to next board when this hits MAX_BAD_NUMBERS
+var badNumberCount   = 0;
+
+// Wall-clock time at which we'll resume PLAYING phase
 var nextPhaseTime;
 
-// board[x][y] is the tile at that location in the grid.
-// Each element has a number (which might be "0" or "1") and
-// a state: active
-var board;
+// We store time left rather than the wall-clock time at which
+// the game ends to allow pausing
+var timeLeft; // in seconds
+
+// Wall-clock time
+var lastOnTickTime;
+
+var lastRedrawTime;
+
+var board = {
+    // (x, y) coordinates of the centers of the tiles that have been
+    // touched to spell activeNumber, in order
+    activeNumberLine : [],
+
+    // tile[x][y] is the tile at that location in the grid.
+    // Each element has a number (which might be "0" or "1") and
+    // a state: active.
+    tile: []
+};
+
+// The board that was previously played (and is being animated away)
+var oldBoard;
 
 // We only allow one touch to trace at a time.  This is NONE
 // if no touch is currently tracing or the ID of the active one.
 var touchID;
 
-// The number that is currently being selected
-var activeNumber; 
+// The number that is currently being formed
+var activeNumber = "";
 
-// The minimum length allowed for activeNumber
-var minLength
-
-// The current decimal guess;
+// The current decimal guess
 var activeDecimal;
 
-// (x, y) coordinates of the centers of the tiles that have been
-// touched to create activeNumber, in order
-var activeNumberLine;
+// The minimum length allowed for activeNumber
+var minLength = 2;
+var maxLength = 10;
 
-var timeLeft; // in seconds
+// Array of objects.  Each contains "number" and count.  
+var numberHistory;
 
+defineGame("BinaryTrace", "Emilia Gan & Laura Vonessen", "title.png", "V");
+
+// Change the page background color
+createTrim();
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
 //                      EVENT RULES                          //
 
+    
+
 // When setup happens...
 function onSetup() {
+    console.log("IN ON SETUP");
+    numberHistory        = [];
+
     touchID        = NONE;
+
     phase          = PLAYING;
 
     // In the past
     nextPhaseTime  = 0;
     score          = 0;
     minLength      = 2;
-    maxLength      = 10;
+
+    board          = createRandomBoard();
+
+    oldBoard       = board;
     
     timeLeft       = TOTAL_GAME_TIME;
-    
-    lastRedrawTime = 0;
-    alert("This game will test how skilled you are at reading binary numbers.\n\n" +
-        "Use the cursor to select two or more number tiles.\n\n" +
-        "Enter in your base 10 equivalent for the binary number displayed by your selected tiles.\n\n" +
-        "If your first submission is correct, your score will increase by the base 10 equivalent of your number.\n\n" +
-        "If you need more than one attempt to correctly give the base 10 conversion, " + 
-        "your score will increase based on the number of tiles used to display the binary value.\n\n" +
-        "As you prove your skill, the minimum length of the binary number you are required to select will increase.\n\n" + 
-        "(Note: You are always free to select a binary number that is LONGER than the required minimum length!)\n\n" +
-        "You have 90 seconds to prove your skill!\n\n\n" +
-        "GOOD LUCK!");
     lastOnTickTime = currentTime();
+    lastRedrawTime = 0;
+
     resetBoard();
 }
 
 
 function onTouchStart(x, y, id) {
-    if (touchID == NONE) {
+    if ((phase == PLAYING) && (touchID == NONE)) {
         touchID = id;
         // Process it in the same way as move
         onTouchMove(x, y, id);
+
+    } else if ((phase == GAME_OVER) &&
+               (currentTime() > nextPhaseTime) && 
+               (y > screenHeight * 0.8)) {
+        
+        // Restart the game
+        onSetup();
+        
     }
 }
 
 
 function onTouchMove(x, y, id) {
+    if (phase != PLAYING) {
+        return;
+    }
+
     var bx;
     var by;
     var tile;
@@ -125,12 +192,11 @@ function onTouchMove(x, y, id) {
 
     if (touchID == id) {
         // See which tile was touched
-        bx = 0;
-        while (bx < BOARD_SIZE) {
+        
+        for (bx = 0; bx < BOARD_SIZE; ++bx) {
 
-            by = 0;
-            while (by < BOARD_SIZE) {
-                tile = board[bx][by];
+            for (by = 0; by < BOARD_SIZE; ++by) {
+                tile = board.tile[bx][by];
                 
                 // Is the distance less than 1/3 of a tile width away
                 // from a center (we use 1/2.5 instead of 1/2 to avoid
@@ -144,81 +210,48 @@ function onTouchMove(x, y, id) {
                     // tiles that aren't adjacent.  verify that this
                     // tile is adjacent to the previous one
                     // horizontally, vertically, or diagonally.
-                    
-                    if ((length(activeNumberLine) == 0) ||
-                        (distance(tile.center, activeNumberLine[length(activeNumberLine) - 1]) < TILE_SIZE * sqrt(2) * 1.1)) {
+                    if ((length(board.activeNumberLine) == 0) ||
+                        (distance(tile.center, board.activeNumberLine[length(board.activeNumberLine) - 1]) < TILE_SIZE * sqrt(2) * 1.1)) {
 
                         // The click was on this tile
                         tile.active = true;
                         activeNumber = activeNumber + tile.number;
-                        insertBack(activeNumberLine, tile.center);
+                        insertBack(board.activeNumberLine, tile.center);
                         
-                        drawScreen();
+                        drawScreen(0);
                         return;
                     } // if adjacent
                 } // if on a tile
-
-                by = by + 1;
-            }
-
-            bx = bx + 1;
-        }
+            } // bx
+        } //by
         
     }
 }
 
 
 function onTouchEnd(x, y, id) {
-    var decimal;
-    var binaryPrompt = "Enter in your decimal conversion for: " + toUpperCase(activeNumber);
-    var binaryBadPrompt = "That is incorrect. Enter in a new conversion for: " + toUpperCase(activeNumber);
-
-    if (touchID == id) {
+    var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
+    
+    activeDecimal = window.prompt(binaryPrompt);
+    console.log("Active number is: ", activeNumber);
+    console.log("Active decimal is: ", activeDecimal);
+    if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
-        // Was there a number entered?
-        // CAN JUST CHANGE THIS TO MIN LENGTH? *****
+        // Was any number at all entered?
         if (length(activeNumber) > 0) {
-            // Was it a good conversion?
-            if (length(activeNumber) >= minLength) {
-                // INCORPORATE LAURA'S KEYPAD *****
-                activeDecimal = window.prompt(binaryPrompt);
-                decimal = activeDecimal;
-                if (isCorrect(activeNumber, decimal)) {
-                    //SHOW_BAD_NUMBER = 0; <-- DON'T THINK I NEED THIS *****
-                    phase         = SHOW_GOOD_NUMBER;
-                    score = score + parseInt(decimal, 10);
-                    drawScreen();
-                    nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-                    if (minLength < maxLength) {
-                        minLength = minLength + 1;
-                    }
-                }
-                else {
-                    SHOW_BAD_NUMBER = 1;
-                    while (SHOW_BAD_NUMBER == 1) {
-                        // Give player another chance to enter good guess
-                        activeDecimal = window.prompt(binaryBadPrompt);
-                        decimal = activeDecimal;
-                        if (isCorrect(activeNumber, decimal)) {
-                            SHOW_BAD_NUMBER = 0;
-                            nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-                            phase         = SHOW_GOOD_NUMBER;
-                            score = score + length(activeNumber);
-                            drawScreen();
-                        }
-                    }
-                }
+            
+            // Is it a legal number?
+            if (length(activeNumber) >= minLength && isCorrect(activeNumber, activeDecimal)){
+                processGoodGuess();
+            } else {
+                processBadGuess();
             }
-            else {
-                alert("You need to select a number that is " + minLength + " tiles long.");
-                //resetBoard();
-            } 
         }
-        //resetBoard();
-        //drawScreen();
     }
+    activeNumber = "";
 }
+
 
 
 function onTick() {
@@ -228,84 +261,180 @@ function onTick() {
     lastOnTickTime = now;
     timeLeft -= deltaTime;
 
-    if ((phase == SHOW_GOOD_NUMBER) && (currentTime() > nextPhaseTime)) {
-        // Advance to the next board
-        if (timeLeft > 0) {
+    if (phase == TRANSITION) {
+
+        if (currentTime() > nextPhaseTime) {
+            // Advance to the next board
             phase = PLAYING;
             resetBoard();
+        } else {
+            var offset = screenWidth * 
+                min(1.0, max(0.0, (nextPhaseTime - currentTime()) / ANIMATE_TRANSITION_TIME));
+            drawScreen(offset);
         }
-        else {
+
+    } else if (phase == PLAYING) {
+
+        if (now > lastRedrawTime + 1) {
+            // Draw the screen so that the timer can update at least
+            // once a second
+            drawScreen(0);
+        }
+
+        if (timeLeft < 0) {
             phase = GAME_OVER;
-            resetBoard();
-            var skillLevel;
-            if (score < 128) {
-                skillLevel = "Novice";
-            }
-            else if (score < 256) {
-                skillLevel = "Beginner";
-            }
-            else if (score < 512) {
-                skillLevel = "Pretty Good";
-            }
-            else if (score < 1024) {
-                skillLevel = "Advanced";
-            }
-            else if (score < 2048) {
-                skillLevel = "Expert";
-            }
-            else {
-                skillLevel = "Genius";
-            }
-
-            var nextLevel;
-            switch (skillLevel)
-            {
-               case "Novice": nextLevel = "Beginner"
-               break;
-               
-               case "Beginner": nextLevel = "Pretty Good"
-               break;
-               
-               case "Pretty Good": nextLevel = "Advanced"
-               break;
-
-               case "Advanced": nextLevel = "Expert"
-               break;
-
-               case "Expert": nextLevel = "Genius"
-               break;
-               
-               default: "This game has no chance against you!"
-            }
-
-
-            var gameOverString = "GAME OVER! Your final score was: " + score + "\n\n" +
-            "Your binary counting skill level is: \"" + skillLevel + 
-            "\"\n\nPlay again to try advancing to the next level --> \"" + nextLevel +
-            "\"\n\nClick \"OK\" to play again \nor\nClick \"Cancel\" to close tab." ;
-            var playAgain = window.confirm(gameOverString);
-            if (playAgain == true) {
-                onSetup();
-            }
-            else {
-                window.close();
-            }
+            
+            // Don't let a new game start for at least one second to
+            // prevent touches that happened right when we switched modes
+            nextPhaseTime = currentTime() + 1;
+            drawGameOverScreen();
         }
     }
-
 }
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
 //                      HELPER RULES                         //
 
-
 function drawGameOverScreen() {
-
+    var i, c, x, y;
     drawImage(GAME_OVER_IMAGE);
 
     fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
+    
+    fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
 
+    // Determine skill level gained and next skill level
+    var skillLevel;
+    if (score < 128) {
+        skillLevel = "Novice";
+    }
+    else if (score < 256) {
+        skillLevel = "Beginner";
+    }
+    else if (score < 512) {
+        skillLevel = "Pretty Good";
+    }
+    else if (score < 1024) {
+        skillLevel = "Advanced";
+    }
+    else if (score < 2048) {
+        skillLevel = "Expert";
+    }
+    else {
+        skillLevel = "Genius";
+    }
+
+    var nextLevel;
+    switch (skillLevel)
+    {
+       case "Novice": 
+        nextLevel = "Beginner";
+        break;
+       
+       case "Beginner": 
+        nextLevel = "Pretty Good";
+        break;
+       
+       case "Pretty Good": 
+        nextLevel = "Advanced";
+        break;
+
+       case "Advanced": 
+        nextLevel = "Expert";
+        break;
+
+       case "Expert": 
+        nextLevel = "Genius";
+        break;
+       
+       default: 
+        nextLevel = "This game has no chance against you!";
+    }
+
+    
+    console.log("YOUR SKILL LEVEL IS: " + skillLevel);
+    console.log("Next Skill Level: " + nextLevel);
+    console.log("SCORE: " + score.toString());
+
+    var gameOverString1 = "GAME OVER!";
+    var gameOverString2 = "Binary counting skill level is: " + skillLevel;
+    var gameOverString3;
+    if(skillLevel == "Genius") {
+        console.log("TRUE");
+        gameOverString3 = "";
+    }
+    else {
+        console.log("FALSE");
+        gameOverString3 = "Play again to try advancing to the next level: ";
+    }
+    var gameOverString4 = nextLevel;    
+
+    fillText(gameOverString1, screenWidth / 2, screenHeight * 0.6, makeColor(0.2, 0.2, 0.2), "bold 95px Arial", "center", "bottom");
+    fillText(gameOverString2, screenWidth / 2, screenHeight * 0.675, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+    fillText(gameOverString3, screenWidth / 2, screenHeight * 0.725, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+    fillText(gameOverString4, screenWidth / 2, screenHeight * 0.775, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+
+}
+
+
+function processBadGuess() {
+    var bx;
+    var by;
+    var entry;
+    console.log("PROCESSING BAD GUESS");
+
+    entry        = makeObject();
+    entry.points = 0;
+    entry.number   = toUpperCase(activeNumber);
+    insertBack(numberHistory, entry);
+
+    // TODO: Play buzzer sound
+    board.activeNumberLine = [];
+    activeNumber     = "";
+    
+    // Clear the pushed buttons
+    for (bx = 0; bx < BOARD_SIZE; ++bx) {
+        for (by = 0; by < BOARD_SIZE; ++by) {
+            board.tile[bx][by].active = false;
+        }
+    }
+
+    drawScreen(0);
+
+    ++badNumberCount;
+    
+    if (badNumberCount == MAX_BAD_NUMBERS) {
+        // Give up and transition to next board
+        badNumberCount = 0;
+        startTransition();
+    }
+}
+
+
+function processGoodGuess() {
+    var entry;
+    console.log("PROCESSING GOOD GUESS");
+    // Record this number in the numberHistory list
+    entry         = makeObject();
+    entry.decimal  = parseInt(activeDecimal, 10);
+    entry.number    = toUpperCase(activeNumber);
+    //insertBack(numberHistory, entry);
+
+    score        += entry.decimal;
+
+    startTransition();
+}
+
+
+function startTransition() {
+    // Set up for the next number
+    nextPhaseTime = currentTime() + ANIMATE_TRANSITION_TIME;
+    phase         = TRANSITION;
+
+    // Prepare the animation
+    oldBoard      = board;
+    board         = createRandomBoard();
 }
 
 
@@ -317,148 +446,116 @@ function distance(P1, P2) {
 
 
 function resetBoard() {
-    score = score;
-    activeNumberLine = [];
-    activeNumber    = "";
-    activeDecimal = "";
-    randomizeBoard();
-    drawScreen();
+    activeNumber     = "";
+    badNumberCount   = 0;
+    touchID        = -1;
+    drawScreen(0);
 }
 
-
-// Returns true iff the decimal entered is the correct translation of the binary value
-function isCorrect(w,decimal) {
-    console.log(w);
-    var l = length(w);
-    var current = l - 1;
-    var currentValue = 1;
-    var totalValue = 0;
-    while (current > -1) {
-        if (w[current] == "1") {
-            totalValue = totalValue + currentValue;
-        }
-        current = current - 1;
-        currentValue = currentValue * 2;
-
-    }
-    return totalValue == decimal;
-}
-
-
-// Generates a random board.
-function randomizeBoard() {
-    var x;
-    var y;
+// Generates a new random board.  Guarantees at least two vowels and no more 
+// than five
+function createRandomBoard() {
+    var bx;
+    var by;
     var tile;
 
-    var numVowels;
-
+    var board = {activeNumberLine: [], tile: []};
     // Create an array of columns
-    board = [];
 
-    x = 0;
-    while (x < BOARD_SIZE) {
+    for (bx = 0; bx < BOARD_SIZE; ++bx) {
         // Create this column
-        board[x] = [];
+        board.tile[bx] = [];
         
-        y = 0;
-        while (y < BOARD_SIZE) {
+        for (by = 0; by < BOARD_SIZE; ++by) {
             tile = makeObject();
             tile.number= randomNumber();
+            //tile.bonus = randomBonus();
             tile.active = false;
             
-            // Center of the tile in pixels
+            // Center of the tile
             tile.center = makeObject();
-            tile.center.x = (screenWidth - TILE_SIZE * BOARD_SIZE) / 2 + (x + 0.5) * TILE_SIZE;
-            tile.center.y = (screenHeight - TILE_SIZE * BOARD_SIZE) / 2 + (y + 0.5) * TILE_SIZE + 100;
+            tile.center.x = (screenWidth  - TILE_SIZE * BOARD_SIZE) / 2 + (bx + 0.5) * TILE_SIZE;
+            tile.center.y = (screenHeight - TILE_SIZE * BOARD_SIZE) / 2 + (by + 0.5) * TILE_SIZE - 280;
             
-            board[x][y] = tile;
-            
-            y = y + 1;
-        }  
-        x = x + 1;
-    }
+            board.tile[bx][by] = tile;
+
+        } // by
+    } // bx
+
+    return board;
 }
 
 
-// Generates a random letter, but treats "Qu" as a single tile and gives preference to
-// letters based on their frequency in the English language.
+// Generates a random number, "0" or "1".
 function randomNumber() {
     // Choose a random percentile
     var r = randomReal(0, 100);
-    N = 0;
-    if (r > NUMBER_FREQUENCY[N]) {
+    var N = 0;
+    if(r > NUMBER_FREQUENCY[N]) {
         N = 1;
     }
+    
+    // Convert to a number
     N = asciiCharacter(48 + N);
-    // Return either 0 or 1 in ASCII
     return N;
+
 }
 
 
-function drawScreen() {
+function drawScreen(offset) {
+    lastRedrawTime = currentTime();
+
+    // Background
+    drawImage(BACKGROUND_IMAGE);
+
+    drawBoard(oldBoard, offset - screenWidth);
+    drawBoard(board, offset);
+
+    drawNumberHistory();
+}
+
+
+function createTrim() {
+    // Alter the background of the web page to extend the background visually
+    var body = document.getElementsByTagName("body")[0];
+    body.style.cssText += "background: url('trim.png');";
+}
+
+
+
+function drawBoard(board, xoffset) {
     var BORDER = 4;
     var BORDER_COLOR = makeColor(0.4, 0.4, 0.4);
     var THICKNESS = 16;
 
-    var x;
-    var y;
+    var x, y;
     var tile;
-    var bx;
-    var by;
+    var bx, by;
     var offset;
     var color;
     var i;
-    var displayEqualString = toUpperCase(activeNumber) +  " = " + toUpperCase(activeDecimal);
-    var displayScoreString = "Score: " + score;
+    var image;
 
-    // Background
-    fillRectangle(0, 0, screenWidth, screenHeight, makeColor(1, 1, 1));
-    fillText("TraceBinary Prototype", screenWidth / 2, 20, makeColor(0.5, 0.5, 0.5),
-             "100px Arial", "center", "top");
-
-    if (phase == SHOW_GOOD_NUMBER) {
-
-        fillText(displayEqualString, screenWidth / 2, 130, makeColor(0.1, 0.6, 0.3),
-                 "bold 115px Times New Roman", "center", "top");
-    }
-
-    else {
-        fillText(displayScoreString, screenWidth / 2, 130, makeColor(0.1, 0.3, 0.6),
-                 "bold 115px Times New Roman", "center", "top");
-    }
-
-    // Board
-    bx = 0;
-    while (bx < BOARD_SIZE) {
-
-        by = 0;
-        while (by < BOARD_SIZE) {
-            tile = board[bx][by];
-            x = tile.center.x;
+    for (bx = 0; bx < BOARD_SIZE; ++bx) {
+        for (by = 0; by < BOARD_SIZE; ++by) {
+            tile = board.tile[bx][by];
+            x = tile.center.x + xoffset;
             y = tile.center.y;
-
-            // Make the tiles look 3D
-            // shadow
-            fillCircle(x, y + THICKNESS + 4, TILE_SIZE / 2 - BORDER, 
-                       makeColor(0.5, 0.6, 0.5, 0.5));
-
-            // sides
-            fillCircle(x, y + THICKNESS, TILE_SIZE / 2 - BORDER - 8, makeColor(0.8, 0.8, 0.7));
-            strokeCircle(x, y + THICKNESS, TILE_SIZE / 2 - BORDER - 8, BORDER_COLOR, BORDER);
 
             // push the top down if active
             if (tile.active) {
                 offset = THICKNESS - 1;
-                color = makeColor(1, 1, 0.75);
+                image = ACTIVE_IMAGE;
             } else {
                 offset = 0;
-                color = makeColor(1, 1, 0.95);
+                if (tile.bonus == true) {
+                    image = INACTIVE_BONUS_IMAGE;
+                } else {
+                    image = INACTIVE_IMAGE;
+                }
             }
           
-            // top
-            fillCircle(x, y + offset, TILE_SIZE / 2 - BORDER - 7, color);
-            strokeCircle(x, y + offset, TILE_SIZE / 2 - BORDER - 7, BORDER_COLOR, BORDER);
+            drawImage(image, x - image.width / 2, y - 104);
 
             // label
             fillText(tile.number, x, y + offset,       
@@ -466,19 +563,81 @@ function drawScreen() {
                      "" + round(TILE_SIZE * 0.65) + "px Times New Roman", 
                      "center", 
                      "middle");
+        } // by
+    } // bx
 
-            by = by + 1;
+    // Draw the line
+    var spline = []
+    for (i = 0; i < length(board.activeNumberLine); ++i) {
+        spline.push(board.activeNumberLine[i].x + xoffset, board.activeNumberLine[i].y);
+    }
+    strokeSpline(spline, LINE_COLOR, 60);
+}
+
+
+function drawNumberHistory() {
+    var h;
+    var color;
+    var entry;
+    var x, y;
+    
+    // Timer bar:
+    var fraction = max(0, timeLeft / TOTAL_GAME_TIME);
+    fillRectangle(116, 1215, 1050 * fraction, 123, makeColor(0, 0.4, 0.1, 0.25));
+
+    fillText(numberWithCommas(score) + " pts", screenWidth / 2, screenHeight * 0.637,
+             makeColor(0.1, 0.6, 0.3),
+             "bold 95px Arial", "center", "top");
+
+    // Show up to five numbers from the numberHistory
+    for (h = 0; h < min(length(numberHistory), 5); ++h) {
+        // NumberHistory goes backwards
+        entry = activeDecimal;
+
+        if (entry.decimal == 0) {
+            color = BAD_NUMBER_COLOR;
+        } else {
+            color = makeColor(0.2, 0.2, 0.2);
         }
-        bx = bx + 1;
-    }
+        
+        x = 140;
+        y = screenHeight * 0.77 + h * 100;
 
-    // Draw the touch line
-    i = 0;
-    while (i < length(activeNumberLine) - 1) {
-        strokeLine(activeNumberLine[i].x, activeNumberLine[i].y,
-                   activeNumberLine[i + 1].x, activeNumberLine[i + 1].y,
-                   LINE_COLOR, 40);
-                   
-        i = i + 1;
+        fillText(entry.word, x, y, color, NUMBER_STYLE, "left", "bottom");
+        // ***** THIS IS FOR THE TEXT BELOW THE PLAYING SCREEN *****
+        //fillText(score, x, y, color, NUMBER_STYLE, "left", "bottom");
+
+        // Draw points
+        //fillText("+" + numberWithCommas(score), screenWidth - x, y, color, 
+        //             "90px Arial", "right", "bottom");
     }
+}
+
+
+// From http://stackoverflow.com/questions/2901102/how-to-print-number-with-commas-as-thousands-separators-in-javascript
+function numberWithCommas(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// Returns true iff the base 10 number entered is the correct translation of the binary value
+function isCorrect(w,decimal) {
+    console.log(w);
+    totalValue = convertToDecimal(w)
+    return totalValue == decimal;
+}
+
+// Convert binary value to base 10 value
+function convertToDecimal(binaryNum) {
+    var l = length(binaryNum);
+    var current = l - 1;
+    var currentValue = 1;
+    var totalValue = 0;
+    while (current > -1) {
+        if (binaryNum[current] == "1") {
+            totalValue = totalValue + currentValue;
+        }
+        current = current - 1;
+        currentValue = currentValue * 2;
+    }
+    return totalValue;
 }
