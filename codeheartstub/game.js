@@ -13,6 +13,7 @@ var START_TIME = currentTime();
 var FALL_TIME = .1; //0.5;
 // time, in seconds, until the next tile gets generated
 var GEN_TIME = .3; //1; 
+var BONUS_DELAY = 2;
 
 // In tiles
 var BOARD_SIZE	 = 4;
@@ -32,7 +33,8 @@ var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 					"falling": makeColor(173/256, 194/256, 235/256), 
 					"landed": makeColor(111/256, 148/256, 220/256),
 					"selected": makeColor(56/256, 74/256, 110/256),
-					"key": makeColor(173/256, 194/256, 235/256) };
+					"bonusFound": makeColor(0,1,0),
+					"bonusMissing": makeColor(1,0,0) };
 
 
 
@@ -58,15 +60,17 @@ var lastKeyCode;
 // tiles with state and center points
 var board;
 
-// TODO: implement this
-// use to make tiles more likely to fall in emptier cols
-var numTilesInCol;
+// used by generate tiles
+var numTilesInCol; // number visible tiles per column
+var visTiles; // total number visible tiles
 
 // time to set tiles falling
 var nextFallTime;
 
 // time to make new tile
 var nextGenTime;
+
+var nextBonusTime;
 
 // (x, y) coordinates of the centers of the tiles that have been
 // touched to create selectedTiles, in order
@@ -84,6 +88,10 @@ var binaryString;
 // "V" means vertical
 defineGame(GAME_NAME, "Laura Vonessen & Emilia Gan", TITLE_IMAGE_NAME, "V", false);
 
+var gameHistory;
+
+var oneThreshold = 0.5;
+
 ///////////////////////////////////////////////////////////////
 //													
 //					 EVENT RULES					
@@ -96,6 +104,7 @@ function onSetup() {
 	paused = true;
 	score = 0;
 	initializeBoard();
+	initializeGameHistory();
 	drawScreen();
 }
 
@@ -201,6 +210,12 @@ function onTick() {
 		if (nextGenTime < currentTime()){
 			nextGenTime += GEN_TIME;
 			generateTile();	
+			console.log(nextBonusTime+" and "+currentTime());
+		}
+		
+		if (gameHistory.bonusComplete && nextBonusTime < currentTime()){
+			gameHistory.numBonusDigits ++;
+			setUpBonus(gameHistory.numBonusDigits);
 		}
 	}
 }
@@ -225,6 +240,12 @@ function onFall(){
 				board[x][y-1].state="empty";
 				board[x][y-1].binary="";
 				
+				// add one visible tile to that col
+				if (y==1){
+					numTilesInCol[x]++;
+					visTiles++;
+				}
+				
 				// if it's in the bottom row or the tile below it 
 				// has landed, mark the current tile as landed
 				if (y==BOARD_HEIGHT-1 || board[x][y+1].state=="landed" || board[x][y+1].state=="selected"){
@@ -241,13 +262,33 @@ function onFall(){
 
 function generateTile(){
 	// choose a column for the tile
-	var x = randomInteger(0,BOARD_WIDTH-1);
+	// includes invisible header tiles
+	var freeSpaces = BOARD_HEIGHT * BOARD_WIDTH - visTiles;
+	// don't need to keep generating tiles if the board is full
+	if (freeSpaces<BOARD_WIDTH){
+		return;
+	}
+	
+	// choose column
+	// prefer emptier columns
+	var rand = randomInteger(0, freeSpaces - 1);
+	var x=0;	
+	while (rand > BOARD_HEIGHT - numTilesInCol[x] ){
+		rand -= BOARD_HEIGHT - numTilesInCol[x];
+		x ++;
+	}
 	
 	// set text 0 or 1 and state falling
-	board[x][0].binary=randomInteger(0,1);
+	board[x][0].binary=generateDigit();
 	board[x][0].state="falling";
-	
-	drawScreen();
+}
+
+function generateDigit(){
+	var digit = Math.random();
+	if (digit > oneThreshold){
+		return 1;
+	}
+	return 0;
 }
 
 // Generates a random board.
@@ -257,6 +298,8 @@ function initializeBoard() {
 	var tile;
 	var boardTL = boardTopLeft();
 	
+	col = [];
+	visTiles = 0;
 	
 	selectedTiles = [];
 
@@ -268,6 +311,7 @@ function initializeBoard() {
 		// Create this column
 		board[x] = [];
 		numTilesInCol[x]=0;
+		col.push(0);
 		
 		for (y = 0; y < BOARD_HEIGHT; y ++) {
 			tile = makeObject();
@@ -284,6 +328,13 @@ function initializeBoard() {
 			resetTile(tile);
 		}
 	}
+	
+	// give something to work with
+	y = BOARD_HEIGHT - 1;
+	for (x = 0; x < BOARD_WIDTH; x ++) {
+		board[x][y].binary = generateDigit();
+		board[x][y].state = "landed";
+	}
 }
 
 function resetTile(tile){
@@ -298,6 +349,10 @@ function removeSelectedTiles(){
 	
 	for (i = 0; i < selectedTiles.length; i ++){
 		bcoord = getBoardIndex(selectedTiles[i].center.x,selectedTiles[i].center.y);
+		
+		// remove one visible tile from that col
+		numTilesInCol[bcoord.x]--;
+		visTiles--;
 		
 		// clear tile
 		resetTile(board[bcoord.x][bcoord.y]);
@@ -330,6 +385,97 @@ function resetSelectedTiles(){
 
 //////////////////////////////////////////////////////////////
 //														 						//
+//					 HISTORY LOGIC					 						//
+
+function initializeGameHistory(){
+	gameHistory = makeObject();
+	gameHistory.moves = [];
+	gameHistory.moveSet = [];
+	// list of objects
+	gameHistory.preBonuses = [];
+	// list of strings that get bonus or count toward bonus
+	gameHistory.curBonuses = [];
+	gameHistory.score = 0;
+	gameHistory.moveArray = [];	
+	
+	gameHistory.numBonusDigits = 2;
+	setUpBonus(gameHistory.numBonusDigits);
+}
+
+function setUpBonus(num){
+	
+	if (num >= 6){
+		gameHistory.curBonuses = [];//[8,9,10,11,12,13,14,15];
+		gameHistory.curBonusesFound = [];
+		gameHistory.bonusText1 = "You've reached expert level!";
+		gameHistory.bonusText2 = "";
+		gameHistory.rewardText = "";
+		gameHistory.reward = 0;
+		gameHistory.bonusComplete = false;
+		return;
+	}
+	
+	var start = Math.pow(2, num-1);
+	var i;
+	gameHistory.curBonuses = [];//[8,9,10,11,12,13,14,15];
+	gameHistory.curBonusesFound = [];
+	for (i=start; i<start*2; i++){
+		insertBack(gameHistory.curBonuses,i);
+		gameHistory.curBonusesFound[i - start] = gameHistory.moveArray [ i ];
+	}
+	gameHistory.bonusText1 = "Find all "+num+"-digit numbers for a bonus!";
+	gameHistory.bonusText2 = "Missing values:";
+	gameHistory.rewardText = "You've completed the "+num+"-digit bonus!";
+	gameHistory.reward = 4*start;
+	gameHistory.bonusComplete = false;
+}
+
+function updateStats(score){
+	// individual information about this number:
+	var historyObj = makeObject();
+	var numMoves = gameHistory.moves.length+1;
+	var numUniqueMoves = gameHistory.moveSet.length;
+	historyObj.rawBinary = asBinaryString(selectedTiles);
+	historyObj.usefulBinary = stripLeading0s(historyObj.rawBinary);
+	historyObj.prettyBinary = prettyBinaryString(historyObj.rawBinary);
+	// count occurrences
+	historyObj.numOnes = (historyObj.rawBinary.match(/1/g) || []).length;	
+	historyObj.numZeroes = (historyObj.prettyBinary.match(/0/g) || []).length;
+	historyObj.leadingZeroes = (historyObj.rawBinary.match(/0/g) || []).length - historyObj.numZeroes;
+	historyObj.score = score;
+	
+	// update cumulative stats:	
+	insertBack(gameHistory.moves, historyObj);
+	gameHistory.score += score;
+	insertNoDup(gameHistory.moveSet, score); //historyObj.usefulBinary);
+	gameHistory.moveArray [ score ] = true;
+	
+	// check for bonuses
+	var idx = index ( gameHistory.curBonuses, score );
+	if ( idx != -1 ){
+		gameHistory.curBonusesFound [ idx ] = true;
+		var bonusComplete = true;
+		var i;
+		for (i = 0; i<gameHistory.curBonuses.length; i++){
+			if (!gameHistory.curBonusesFound[i]){
+				bonusComplete = false;
+				break;
+			}
+		}
+		if (bonusComplete){		
+			gameHistory.bonusText1 = gameHistory.rewardText;
+			gameHistory.bonusText2 = "+"+gameHistory.reward;
+			gameHistory.score += gameHistory.reward;
+			gameHistory.curBonuses = [];		
+			gameHistory.bonusComplete = true;
+			initializeBoard();
+			nextBonusTime = currentTime()+BONUS_DELAY;
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////
+//														 						//
 //					 KEYPAD LOGIC 					 						//
 
 // show key pad
@@ -355,7 +501,7 @@ function checkAns(decimal){
 	if (selectedTiles.length > 0) {
 		// Was it a good conversion?
 		if (isCorrect(asBinaryString(selectedTiles), decimal)) {
-			score = score + parseInt(decimal, 10);
+			updateStats(parseInt(decimal, 10));
 			removeSelectedTiles();
 			return true;
 		}
@@ -387,8 +533,42 @@ function drawScreen() {
 	fillRectangle(0, 0, screenWidth, screenHeight, COLORS["background"]);
 	fillText(GAME_NAME, screenWidth / 2, 100, makeColor(0.5, 0.5, 0.5),
 			 "100px Arial", "center", "top");
-	fillText("Score: "+score, screenWidth / 2, 190, makeColor(0.5, 0.5, 0.5),
+	fillText("Score: "+gameHistory.score, screenWidth / 2, 190, makeColor(0.5, 0.5, 0.5),
 			 "80px Arial", "center", "top");
+			
+	// bonus header
+	fillText(gameHistory.bonusText1, screenWidth / 2, 290, makeColor(0.5, 0.5, 0.5),
+			 "70px Arial", "center", "top");
+	var offSet = 360;
+	if (gameHistory.curBonuses.length <= 12){
+		fillText(gameHistory.bonusText2, screenWidth / 2, 360, makeColor(0.5, 0.5, 0.5),
+				 "70px Arial", "center", "top");
+		offSet = 430;
+	}
+	
+	// "bonusFound" "bonusMissing"
+	// COLORS[tile.state]
+	var numPerLine = Math.min(6,(gameHistory.curBonuses.length));
+	var spacing = screenWidth / ( numPerLine+1 );
+	var leftMargin = spacing;
+	for (i=0; i<gameHistory.curBonuses.length; i++){
+		if (i%numPerLine == 0 && gameHistory.curBonuses[i+numPerLine] == undefined && gameHistory.curBonuses.length % numPerLine != 0){
+			leftMargin = (2 + numPerLine - gameHistory.curBonuses.length % numPerLine) / 2 * spacing;
+		} 
+		fillText(gameHistory.curBonuses[i], (i%numPerLine) * spacing + leftMargin, offSet+Math.floor(i/numPerLine)*90, gameHistory.curBonusesFound[i]?COLORS["bonusFound"]:COLORS["bonusMissing"],
+			 "bold 90px Arial", "center", "top");
+	}
+	
+	// score history
+	var moveIndex = gameHistory.moves.length-1;
+	var move;
+	if (moveIndex >= 0){
+		move = gameHistory.moves[moveIndex];
+		fillText("Move: "+move.usefulBinary, screenWidth / 8, 630, makeColor(0.5, 0.5, 0.5),
+			 "bold 90px Arial", "left", "top");
+		fillText("+"+move.score, screenWidth - screenWidth / 8, 630, makeColor(0.5, 0.5, 0.5),
+			 "bold 90px Arial", "right", "top");
+	}
 
 	// Board background
 	
@@ -499,14 +679,22 @@ function prettyBinaryString(str){
 	var i;
 	
 	// strip leading zeroes
-	while (str.length > 1 && str.charAt(0)=="0"){
-		str = str.slice(1);
-	}
+	str = stripLeading0s(str);
 	
 	for (i = str.length - 3; i > 0; i -= 3){
 		str = str.slice(0,i) + " " + str.slice(i);
 	}
 	return str + "<sub>2</sub>";
+}
+
+function stripLeading0s(str){
+	var i;
+	
+	// strip leading zeroes
+	while (str.length > 1 && str.charAt(0)=="0"){
+		str = str.slice(1);
+	}
+	return str;
 }
 
 // Returns true iff the decimal entered is the correct translation of the binary value
@@ -528,13 +716,23 @@ function insertNoDup(list, element){
 	var insert = true;
 	var i;
 	for (i = 0; i < list.length; i++) {
-		if (list[i] === element ) {
+		if (list[i] == element ) {
 			insert = false;		
 		}
 	}
 	if (insert) {
 		insertBack(list, element);
 	}
+}
+
+function index(list, element){
+	var i;
+	for (i = 0; i < list.length; i++) {
+		if (list[i] == element ) {
+			return i;	
+		}
+	}
+	return -1;
 }
 
 
