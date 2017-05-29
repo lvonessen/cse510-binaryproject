@@ -10,9 +10,9 @@
 // start
 var START_TIME = currentTime();
 // amount of time, in seconds, before a tile falls down one slot
-var FALL_TIME = .1; //0.5;
+var FALL_TIME = .5; //0.5;
 // time, in seconds, until the next tile gets generated
-var GEN_TIME = .3; //1; 
+var GEN_TIME = 1;//.3; //1; 
 var BONUS_DELAY = 2;
 
 // In tiles
