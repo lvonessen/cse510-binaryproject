@@ -56,8 +56,8 @@ var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 
 var NUMBER_STYLE  = "100px Times New Roman";
 
-var GOOD_GUESS = "";
-var BAD_GUESS = "";
+//var GOOD_GUESS = "";
+var BAD_GUESS = false;
 
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
@@ -245,6 +245,7 @@ function onTouchEnd(x, y, id) {
             if (length(activeNumber) >= minLength && isCorrect(activeNumber, activeDecimal)){
                 processGoodGuess();
             } else {
+                ++badNumberCount;
                 processBadGuess();
             }
         }
@@ -379,30 +380,54 @@ function drawGameOverScreen() {
 
 
 function processBadGuess() {
+    BAD_GUESS = true;
     var bx;
     var by;
     var entry;
+    var binaryBadPrompt = "That is incorrect. Enter in a new conversion for: " + activeNumber;
+
     console.log("PROCESSING BAD GUESS");
+    //entry        = makeObject();
+    //entry.number   = parseInt(activeNumber);
 
-    entry        = makeObject();
-    entry.points = 0;
-    entry.number   = toUpperCase(activeNumber);
-    insertBack(numberHistory, entry);
-
-    // TODO: Play buzzer sound
-    board.activeNumberLine = [];
-    activeNumber     = "";
-    
-    // Clear the pushed buttons
-    for (bx = 0; bx < BOARD_SIZE; ++bx) {
-        for (by = 0; by < BOARD_SIZE; ++by) {
-            board.tile[bx][by].active = false;
+    while (badNumberCount < MAX_BAD_NUMBERS) {
+        console.log("Bad Number Count: ", badNumberCount);
+        console.log("Current BINARY  number: ", activeNumber);
+        console.log("Current BASE 10 guess: ", activeDecimal);
+        // Give player another chance to enter good guess
+        activeDecimal = window.prompt(binaryBadPrompt);
+        //decimal = activeDecimal;
+        if (isCorrect(activeNumber, activeDecimal)) {
+            //SHOW_BAD_NUMBER = 0;
+            processGoodGuess();
+            break;
+            //nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
+            //phase         = SHOW_GOOD_NUMBER;
+            
+            //console.log("UPDATED (bad) SCORE: " + score.toString());
+            //drawScreen();
+            //break;
         }
+        else {
+            ++badNumberCount;
+        }
+
+        //BAD_GUESS = parseInt(activeDecimal); // ****** DO I NEED/USE THIS?
+        //insertBack(numberHistory, entry);
+
+        // TODO: Play buzzer sound
+
+        
+        // Clear the pushed buttons
+        for (bx = 0; bx < BOARD_SIZE; ++bx) {
+            for (by = 0; by < BOARD_SIZE; ++by) {
+                board.tile[bx][by].active = false;
+            }
+        }
+        //board.activeNumberLine = [];
+        //activeNumber     = "";
+        //drawScreen(0);
     }
-
-    drawScreen(0);
-
-    ++badNumberCount;
     
     if (badNumberCount == MAX_BAD_NUMBERS) {
         // Give up and transition to next board
@@ -411,17 +436,24 @@ function processBadGuess() {
     }
 }
 
-
 function processGoodGuess() {
     var entry;
     console.log("PROCESSING GOOD GUESS");
     // Record this number in the numberHistory list
     entry         = makeObject();
     entry.decimal  = parseInt(activeDecimal, 10);
-    entry.number    = toUpperCase(activeNumber);
+    entry.number    = activeNumber;
     //insertBack(numberHistory, entry);
-
-    score        += entry.decimal;
+    console.log("Status of BAD_GUESS is: ", BAD_GUESS);
+    if (BAD_GUESS == true) {
+        score += length(activeNumber);
+        console.log("Score addition after bad guess: ", score);
+    }
+    else {
+        score += entry.decimal;
+        console.log("Score addition after initial good guess: ", score);
+    }
+    
 
     startTransition();
 }
@@ -429,6 +461,7 @@ function processGoodGuess() {
 
 function startTransition() {
     // Set up for the next number
+    BAD_GUESS = false;
     nextPhaseTime = currentTime() + ANIMATE_TRANSITION_TIME;
     phase         = TRANSITION;
 
