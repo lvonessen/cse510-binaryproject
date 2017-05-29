@@ -63,6 +63,7 @@ var board;
 // used by generate tiles
 var numTilesInCol; // number visible tiles per column
 var visTiles; // total number visible tiles
+var visZeroes;
 
 // time to set tiles falling
 var nextFallTime;
@@ -209,8 +210,7 @@ function onTick() {
 		
 		if (nextGenTime < currentTime()){
 			nextGenTime += GEN_TIME;
-			generateTile();	
-			console.log(nextBonusTime+" and "+currentTime());
+			generateTile();
 		}
 		
 		if (gameHistory.bonusComplete && nextBonusTime < currentTime()){
@@ -237,13 +237,15 @@ function onFall(){
 			if (board[x][y-1].state == "falling" && board[x][y].state == "empty"){
 				board[x][y].state = "falling";
 				board[x][y].binary = board[x][y-1].binary;
-				board[x][y-1].state="empty";
-				board[x][y-1].binary="";
+				resetTile(board[x][y-1]);
 				
 				// add one visible tile to that col
 				if (y==1){
 					numTilesInCol[x]++;
 					visTiles++;
+					if (board[x][y].binary == 0){
+						visZeroes++;
+					}
 				}
 				
 				// if it's in the bottom row or the tile below it 
@@ -269,6 +271,43 @@ function generateTile(){
 		return;
 	}
 	
+	var x = chooseColSquared();
+	
+	var percentZeroes = visZeroes / visTiles;
+	oneThreshold = .25+(1-percentZeroes)/2;
+	
+	// set text 0 or 1 and state falling
+	board[x][0].binary=generateDigit();
+	board[x][0].state="falling";
+}
+
+function chooseColSquared(){
+	var sum = 0;
+	var interm = 0;
+	var i;
+	for (i=0; i<BOARD_WIDTH; i++){
+		interm = (BOARD_HEIGHT - numTilesInCol[i]);
+		sum += interm * interm;
+	}
+	
+	// choose column
+	// prefer emptier columns
+	var rand = randomInteger(0, sum - 1);
+	var x=0;	
+	interm = (BOARD_HEIGHT - numTilesInCol[x]);
+	while (rand > interm*interm ){
+		rand -= interm*interm;
+		x ++;
+		interm = (BOARD_HEIGHT - numTilesInCol[x]);
+	}
+	return x;
+}
+
+function chooseColLinear(){
+	// choose a column for the tile
+	// includes invisible header tiles
+	var freeSpaces = BOARD_HEIGHT * BOARD_WIDTH - visTiles;
+	
 	// choose column
 	// prefer emptier columns
 	var rand = randomInteger(0, freeSpaces - 1);
@@ -277,10 +316,19 @@ function generateTile(){
 		rand -= BOARD_HEIGHT - numTilesInCol[x];
 		x ++;
 	}
-	
-	// set text 0 or 1 and state falling
-	board[x][0].binary=generateDigit();
-	board[x][0].state="falling";
+	return x;
+}
+
+function debugChooseCol(num){
+	var i;
+	var numTimes = [];
+	for (i=0; i<BOARD_WIDTH; i++){
+		numTimes[i] = 0;
+	}
+	for (i=0; i<num; i++){
+		numTimes[chooseCol()]++;
+	}
+	console.log(numTimes);
 }
 
 function generateDigit(){
@@ -300,6 +348,7 @@ function initializeBoard() {
 	
 	col = [];
 	visTiles = 0;
+	visZeroes = 0;
 	
 	selectedTiles = [];
 
@@ -334,6 +383,11 @@ function initializeBoard() {
 	for (x = 0; x < BOARD_WIDTH; x ++) {
 		board[x][y].binary = generateDigit();
 		board[x][y].state = "landed";
+		numTilesInCol[x]++;
+		visTiles ++;
+		if (board[x][y].binary == 0){
+			visZeroes ++;
+		}
 	}
 }
 
@@ -353,6 +407,9 @@ function removeSelectedTiles(){
 		// remove one visible tile from that col
 		numTilesInCol[bcoord.x]--;
 		visTiles--;
+		if (board[bcoord.x][bcoord.y].binary == 0){
+			visZeroes --;
+		}
 		
 		// clear tile
 		resetTile(board[bcoord.x][bcoord.y]);
