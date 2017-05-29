@@ -1,7 +1,6 @@
 // binaryTrace/game.js
 //
-// Sample word game, showing how to incorporate a dictionary and touch
-// gestures.
+// Prototype game, showing how to count in binary.
 
 // TODO:
 // Sounds
@@ -16,14 +15,14 @@
 //                                                           //
 //                    CONSTANT STATE                         //
 
-include("wordlist.js");
+
 
 var BACKGROUND_IMAGE          = loadImage("background.png");
 
-var INACTIVE_VOWEL_IMAGE      = loadImage("inactive-vowel-button.png");
-var INACTIVE_CONSONANT_IMAGE  = loadImage("inactive-consonant-button.png");
-var ACTIVE_CONSONANT_IMAGE    = loadImage("active-button.png");
-var ACTIVE_VOWEL_IMAGE        = ACTIVE_CONSONANT_IMAGE;
+var INACTIVE_IMAGE      = loadImage("regular-button.png");
+var INACTIVE_BONUS_IMAGE  = loadImage("bonus-button.png");
+var ACTIVE_IMAGE    = loadImage("active-button.png");
+var ACTIVE_BONUS_IMAGE        = ACTIVE_IMAGE;
 
 var GAME_OVER_IMAGE           = loadImage("gameover.png");
 
@@ -33,21 +32,10 @@ var BOARD_SIZE     = 4;
 // In pixels
 var TILE_SIZE      = 240;
 
-// Percentages from http://en.wikipedia.org/wiki/Letter_frequency,
-// adjusted to add up to 100 after rounding.  These are slightly
-// different than the ones used in tracewordslite and have been
-// tweaked to lead to words that are easier to spell.
-var LETTER_FREQUENCY =
-    //A   B    C    D    E     F    G    H    I    J    K
-    [8.4, 1.5, 2.8, 4.3,12.8, 2.5, 2.1, 6.1, 7.3, 0.2, 0.8, 
-     //L  M    N    O    P     Q    R    S    T    U    V
-     4.0, 2.5, 6.8, 7.6, 1.9, 0.05, 6.0, 6.4, 9.3, 1.4, 1.0,
-     //W   X    Y   Z
-     2.4, 0.1, 1.9, 0.05];
-
-// Code for debugging letter frequency
-// for(i = 0; i < 26; ++i) { console.log(asciiCharacter(i + 65) + " " + LETTER_FREQUENCY[i]); }
-// sum = 0; for (i = 0; i < 26; ++i) { sum += LETTER_FREQUENCY[i]; } console.log(sum);
+// Percentages should add up to 100 after rounding.  
+var NUMBER_FREQUENCY =
+    //0  1  
+    [40, 60];
 
 var NONE           = -1;
 
@@ -55,6 +43,9 @@ var NONE           = -1;
 var PLAYING        = 0;
 var TRANSITION     = 1;
 var GAME_OVER      = 2;
+var SHOW_BAD_NUMBER = 0;
+var SHOW_GOOD_NUMBER = 1;
+var SHOW_NUMBER_TIME = 1.5; // seconds
 
 // Will return to PLAYING
 var PAUSED         = 3;
@@ -63,10 +54,10 @@ var ANIMATE_TRANSITION_TIME = 0.4; // seconds
 
 var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 
-var WORDHISTORY_STYLE  = "100px Times New Roman";
+var NUMBER_STYLE  = "100px Times New Roman";
 
-var BAD_WORD_COLOR = makeColor( 0.6, 0, 0);
-var MAX_BAD_WORDS  = 3;
+var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
+var MAX_BAD_NUMBERS  = 3;
 
 var TOTAL_GAME_TIME = 120; // seconds
 
@@ -81,8 +72,8 @@ var score;
 // PLAYING or TRANSITION
 var phase;
 
-// Auto-advance to next board when this hits MAX_BAD_WORDS
-var badWordCount   = 0;
+// Auto-advance to next board when this hits MAX_BAD_NUMBERS
+var badNumberCount   = 0;
 
 // Wall-clock time at which we'll resume PLAYING phase
 var nextPhaseTime;
@@ -98,11 +89,11 @@ var lastRedrawTime;
 
 var board = {
     // (x, y) coordinates of the centers of the tiles that have been
-    // touched to spell activeWord, in order
-    activeWordLine : [],
+    // touched to spell activeNumber, in order
+    activeNumberLine : [],
 
     // tile[x][y] is the tile at that location in the grid.
-    // Each element has a letter (which might be "Qu") and
+    // Each element has a number (which might be "0" or "1") and
     // a state: active.
     tile: []
 };
@@ -114,14 +105,13 @@ var oldBoard;
 // if no touch is currently tracing or the ID of the active one.
 var touchID;
 
-// The word that is currently being spelled
-var activeWord;
+// The number that is currently being formed
+var activeNumber;
 
-// Array of objects.  Each contains "word" and "points".  If points == 0,
-// then it was a bad word
-var wordHistory;
+// Array of objects.  Each contains "number" and count.  
+var numberHistory;
 
-defineGame("Tracewords", "Morgan McGuire", "title.png", "V");
+defineGame("BinaryTrace", "Emilia Gan & Laura Vonessen", "title.png", "V");
 
 // Change the page background color
 createTrim();
@@ -134,7 +124,8 @@ createTrim();
 
 // When setup happens...
 function onSetup() {
-    wordHistory        = [];
+    console.log("IN ON SETUP");
+    numberHistory        = [];
 
     touchID        = NONE;
 
@@ -207,13 +198,13 @@ function onTouchMove(x, y, id) {
                     // tiles that aren't adjacent.  verify that this
                     // tile is adjacent to the previous one
                     // horizontally, vertically, or diagonally.
-                    if ((length(board.activeWordLine) == 0) ||
-                        (distance(tile.center, board.activeWordLine[length(board.activeWordLine) - 1]) < TILE_SIZE * sqrt(2) * 1.1)) {
+                    if ((length(board.activeNumberLine) == 0) ||
+                        (distance(tile.center, board.activeNumberLine[length(board.activeNumberLine) - 1]) < TILE_SIZE * sqrt(2) * 1.1)) {
 
                         // The click was on this tile
                         tile.active = true;
-                        activeWord = activeWord + tile.letter;
-                        insertBack(board.activeWordLine, tile.center);
+                        activeNumber = activeNumber + tile.number;
+                        insertBack(board.activeNumberLine, tile.center);
                         
                         drawScreen(0);
                         return;
@@ -230,14 +221,14 @@ function onTouchEnd(x, y, id) {
     if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
-        // Was any word at all entered?
-        if (length(activeWord) > 0) {
+        // Was any number at all entered?
+        if (length(activeNumber) > 0) {
 
-            // Is it a legal word?
-            if ((length(activeWord) >= 3) && isWord(activeWord)) {
-                processGoodWord()
+            // Is it a legal number?
+            if ((length(activeNumber) >= 3) && isNumber(activeNumber)) {
+                processGoodGuess()
             } else {
-                processBadWord();
+                processBadGuess();
             }
         }
     }
@@ -292,36 +283,33 @@ function drawGameOverScreen() {
     drawImage(GAME_OVER_IMAGE);
 
     fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
-
-    // Sort words by length, longest to shortest
-    wordHistory.sort(function(a, b) { return b.points - a.points; });
     
     c = 0;
-    for (i = 0; i < length(wordHistory); ++i) {
-        if (wordHistory[i].points > 0) {
+    for (i = 0; i < length(numberHistory); ++i) {
+        if (numberHistory[i].points > 0) {
             // Three columns
             x = (c % 3) * 400 + 75;
             y = 500 + floor(c / 3) * 75;
-            fillText(wordHistory[i].word, x, y, makeColor(0.2, 0.2, 0.2), "75px Times New Roman", "left", "bottom");
+            fillText(numberHistory[i].number, x, y, makeColor(0.2, 0.2, 0.2), "75px Times New Roman", "left", "bottom");
             c = c + 1;
         }
     }
 }
 
 
-function processBadWord() {
+function processBadGuess() {
     var bx;
     var by;
     var entry;
 
     entry        = makeObject();
     entry.points = 0;
-    entry.word   = toUpperCase(activeWord);
-    insertBack(wordHistory, entry);
+    entry.number   = toUpperCase(activeNumber);
+    insertBack(numberHistory, entry);
 
     // TODO: Play buzzer sound
-    board.activeWordLine = [];
-    activeWord     = "";
+    board.activeNumberLine = [];
+    activeNumber     = "";
     
     // Clear the pushed buttons
     for (bx = 0; bx < BOARD_SIZE; ++bx) {
@@ -332,24 +320,24 @@ function processBadWord() {
 
     drawScreen(0);
 
-    ++badWordCount;
+    ++badNumberCount;
     
-    if (badWordCount == MAX_BAD_WORDS) {
+    if (badNumberCount == MAX_BAD_NUMBERS) {
         // Give up and transition to next board
-        badWordCount = 0;
+        badNumberCount = 0;
         startTransition();
     }
 }
 
 
-function processGoodWord() {
+function processGoodGuess() {
     var entry;
 
-    // Record this word in the wordHistory list
+    // Record this number in the numberHistory list
     entry         = makeObject();
-    entry.points  = pow(length(activeWord) - 1, 3) * 50;
-    entry.word    = toUpperCase(activeWord);
-    insertBack(wordHistory, entry);
+    entry.points  = pow(length(activeNumber) - 1, 3) * 50;
+    entry.number    = toUpperCase(activeNumber);
+    insertBack(numberHistory, entry);
 
     score        += entry.points;
 
@@ -358,7 +346,7 @@ function processGoodWord() {
 
 
 function startTransition() {
-    // Set up for the next word
+    // Set up for the next number
     nextPhaseTime = currentTime() + ANIMATE_TRANSITION_TIME;
     phase         = TRANSITION;
 
@@ -376,25 +364,11 @@ function distance(P1, P2) {
 
 
 function resetBoard() {
-    activeWord     = "";
-    badWordCount   = 0;
+    activeNumber     = "";
+    badNumberCount   = 0;
     touchID        = -1;
     drawScreen(0);
 }
-
-// Returns true iff w is a real English word
-function isWord(w) {
-    // This has to look through 64k words...but it only takes a
-    // fraction of a second to do so.
-    return indexOf(ENGLISH_WORD_LIST, toLowerCase(w)) != -1;
-}
-
-
-// Returns true if the letter is an upper-case vowel (not Y)
-function isVowel(x) {
-    return (x == "A") || (x == "E") || (x == "I") || (x == "O") || (x == "U");
-}
-
 
 // Generates a new random board.  Guarantees at least two vowels and no more 
 // than five
@@ -403,60 +377,46 @@ function createRandomBoard() {
     var by;
     var tile;
 
-    var numVowels;
-
-    var board = {activeWordLine: [], tile: []};
+    var board = {activeNumberLine: [], tile: []};
     // Create an array of columns
 
-    numVowels = 0;
-    while ((numVowels < 2) || (numVowels > 5)) {
-        numVowels = 0;
-        for (bx = 0; bx < BOARD_SIZE; ++bx) {
-            // Create this column
-            board.tile[bx] = [];
+    for (bx = 0; bx < BOARD_SIZE; ++bx) {
+        // Create this column
+        board.tile[bx] = [];
+        
+        for (by = 0; by < BOARD_SIZE; ++by) {
+            tile = makeObject();
+            tile.number= randomNumber();
+            //tile.bonus = randomBonus();
+            tile.active = false;
             
-            for (by = 0; by < BOARD_SIZE; ++by) {
-                tile = makeObject();
-                tile.letter = randomLetter();
-                tile.active = false;
-                
-                // Center of the tile
-                tile.center = makeObject();
-                tile.center.x = (screenWidth  - TILE_SIZE * BOARD_SIZE) / 2 + (bx + 0.5) * TILE_SIZE;
-                tile.center.y = (screenHeight - TILE_SIZE * BOARD_SIZE) / 2 + (by + 0.5) * TILE_SIZE - 280;
-                
-                board.tile[bx][by] = tile;
+            // Center of the tile
+            tile.center = makeObject();
+            tile.center.x = (screenWidth  - TILE_SIZE * BOARD_SIZE) / 2 + (bx + 0.5) * TILE_SIZE;
+            tile.center.y = (screenHeight - TILE_SIZE * BOARD_SIZE) / 2 + (by + 0.5) * TILE_SIZE - 280;
+            
+            board.tile[bx][by] = tile;
 
-
-                if (isVowel(tile.letter)) {
-                    numVowels = numVowels + 1;
-                }
-
-            } // by
-        } // bx
-    }
+        } // by
+    } // bx
 
     return board;
 }
 
 
-// Generates a random letter, but treats "Qu" as a single tile and gives preference to
-// letters based on their frequency in the English language.
-function randomLetter() {
+// Generates a random number, "0" or "1".
+function randomNumber() {
     // Choose a random percentile
     var r = randomReal(0, 100);
-    var L;
-    for (L = 0; (L < 26) && (r > LETTER_FREQUENCY[L]); ++L) {
-        r -= LETTER_FREQUENCY[L];
+    var N = 0;
+    if(r > NUMBER_FREQUENCY[N]) {
+        N = 1;
     }
     
-    // Convert to a letter
-    L = asciiCharacter(asciiCode('A') + L);
-    if (L == "Q") {
-        return "Qu";
-    } else {
-        return L;
-    }
+    // Convert to a number
+    N = asciiCharacter(48 + N);
+    return N;
+
 }
 
 
@@ -469,7 +429,7 @@ function drawScreen(offset) {
     drawBoard(oldBoard, offset - screenWidth);
     drawBoard(board, offset);
 
-    drawWordHistory();
+    drawNumberHistory();
 }
 
 
@@ -503,24 +463,20 @@ function drawBoard(board, xoffset) {
             // push the top down if active
             if (tile.active) {
                 offset = THICKNESS - 1;
-                if (isVowel(tile.letter)) {
-                    image = ACTIVE_VOWEL_IMAGE;
-                } else {
-                    image = ACTIVE_CONSONANT_IMAGE;
-                }
+                image = ACTIVE_IMAGE;
             } else {
                 offset = 0;
-                if (isVowel(tile.letter)) {
-                    image = INACTIVE_VOWEL_IMAGE;
+                if (tile.bonus == true) {
+                    image = INACTIVE_BONUS_IMAGE;
                 } else {
-                    image = INACTIVE_CONSONANT_IMAGE;
+                    image = INACTIVE_IMAGE;
                 }
             }
           
             drawImage(image, x - image.width / 2, y - 104);
 
             // label
-            fillText(tile.letter, x, y + offset,       
+            fillText(tile.number, x, y + offset,       
                      makeColor(0.2, 0.2, 0.2), 
                      "" + round(TILE_SIZE * 0.65) + "px Times New Roman", 
                      "center", 
@@ -530,14 +486,14 @@ function drawBoard(board, xoffset) {
 
     // Draw the line
     var spline = []
-    for (i = 0; i < length(board.activeWordLine); ++i) {
-        spline.push(board.activeWordLine[i].x + xoffset, board.activeWordLine[i].y);
+    for (i = 0; i < length(board.activeNumberLine); ++i) {
+        spline.push(board.activeNumberLine[i].x + xoffset, board.activeNumberLine[i].y);
     }
     strokeSpline(spline, LINE_COLOR, 60);
 }
 
 
-function drawWordHistory() {
+function drawNumberHistory() {
     var h;
     var color;
     var entry;
@@ -551,13 +507,13 @@ function drawWordHistory() {
              makeColor(0.1, 0.6, 0.3),
              "bold 95px Arial", "center", "top");
 
-    // Show up to five words from the wordHistory
-    for (h = 0; h < min(length(wordHistory), 5); ++h) {
-        // WordHistory goes backwards
-        entry = wordHistory[length(wordHistory) - h - 1];
+    // Show up to five numbers from the numberHistory
+    for (h = 0; h < min(length(numberHistory), 5); ++h) {
+        // NumberHistory goes backwards
+        entry = numberHistory[length(numberHistory) - h - 1];
 
         if (entry.points == 0) {
-            color = BAD_WORD_COLOR;
+            color = BAD_NUMBER_COLOR;
         } else {
             color = makeColor(0.2, 0.2, 0.2);
         }
@@ -565,11 +521,11 @@ function drawWordHistory() {
         x = 140;
         y = screenHeight * 0.77 + h * 100;
 
-        fillText(entry.word, x, y, color, WORDHISTORY_STYLE, "left", "bottom");
+        fillText(entry.number, x, y, color, NUMBER_STYLE, "left", "bottom");
 
         if (entry.points == 0) {
             // Strikethrough
-            strokeLine(x, y - 60, x + measureTextWidth(entry.word, WORDHISTORY_STYLE),
+            strokeLine(x, y - 60, x + measureTextWidth(entry.number, NUMBER_STYLE),
                        y - 60, color, 10);
         } else {
             // Draw points
