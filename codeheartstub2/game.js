@@ -71,10 +71,22 @@ var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 //                                                           //
 //                     MUTABLE STATE                         //
 
-// Numbers converted and counts
-var numberArray;
-for (var i = 0, numberArray = []; i < 1023; i++) numberArray.push(0);
+var totCorrect = 0; //**** TEMPORARY ****
+var totWrong = 0;   //**** TEMPORARY ****
 
+// Numbers converted correctly and counts
+// We will only keep track of correctness for levels corresponding
+// to base 10 values < 512 (up to 10 binary digits).
+var numberCorrectArray;
+for (var i1 = 0, numberCorrectArray = []; i1 < 512; i1++) {
+    numberCorrectArray.push(0);
+}
+
+// Numbers converted incorrectly and counts
+var numberWrongArray;
+for (var i2 = 0, numberWrongArray = []; i2 < 512; i2++) {
+    numberWrongArray.push(0);
+}
 // Player's current points
 var score;
 
@@ -146,8 +158,7 @@ createTrim();
 
 // When setup happens...
 function onSetup() {
-    console.log("IN ON SETUP");
-    numberHistory        = [];
+    numberHistory        = []; // Not sure this is needed ******
 
     touchID        = NONE;
 
@@ -244,8 +255,7 @@ function onTouchEnd(x, y, id) {
     var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
     
     activeDecimal = window.prompt(binaryPrompt);
-    console.log("Active number is: ", activeNumber);
-    console.log("Active decimal is: ", activeDecimal);
+
     if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
@@ -309,8 +319,13 @@ function onTick() {
 //                      HELPER RULES                         //
 
 function drawGameOverScreen() {
-    var i, c, x, y;
+    var x, y;
     drawImage(GAME_OVER_IMAGE);
+    arrayInfo();
+    console.log("Total Attempted: ", totWrong + totCorrect);
+    console.log("Total Correct: ", totCorrect);
+    console.log("Total Wrong: ", totWrong);
+    console.log("Total % Correct: ", overallCorrectness());
 
     fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
     
@@ -373,11 +388,9 @@ function drawGameOverScreen() {
     var gameOverString2 = "Binary counting skill level is: " + skillLevel;
     var gameOverString3;
     if(skillLevel == "Genius") {
-        console.log("TRUE");
         gameOverString3 = "";
     }
     else {
-        console.log("FALSE");
         gameOverString3 = "Play again to try advancing to the next level: ";
     }
     var gameOverString4 = nextLevel;    
@@ -395,21 +408,31 @@ function processBadGuess() {
     var bx;
     var by;
     var binaryBadPrompt = "That is incorrect. Enter in a new conversion for: " + activeNumber;
+    var entry;
 
-    console.log("PROCESSING BAD GUESS");
+    entry         = makeObject();
+    entry.decimal  = parseInt(activeDecimal, 10);
+    entry.number    = activeNumber;
+
+    //console.log("PROCESSING BAD GUESS");
+
+    totWrong += 1;
+    numberWrongArray[entry.decimal] = numberWrongArray[entry.decimal] + 1;
 
     while (badNumberCount < MAX_BAD_NUMBERS) {
-        console.log("Bad Number Count: ", badNumberCount);
-        console.log("Current BINARY  number: ", activeNumber);
-        console.log("Current BASE 10 guess: ", activeDecimal);
+        //console.log("Bad Number Count: ", badNumberCount);
+
         // Give player another chance to enter good guess
         activeDecimal = window.prompt(binaryBadPrompt);
+        entry.decimal  = parseInt(activeDecimal, 10);
     
         if (isCorrect(activeNumber, activeDecimal)) {
             processGoodGuess();
             break;
         }
         else {
+            totWrong += 1;
+            numberWrongArray[entry.decimal] = numberWrongArray[entry.decimal] + 1;
             ++badNumberCount;
         }
         
@@ -430,34 +453,28 @@ function processBadGuess() {
 }
 
 function processGoodGuess() {
-    //var h = 1; // change if number of lines of text in fillString changes
+    totCorrect += 1;
     var entry;
     var fillString = "";
-    console.log("PROCESSING GOOD GUESS");
+    //console.log("PROCESSING GOOD GUESS");
     // Record this number in the numberHistory list
     entry         = makeObject();
     entry.decimal  = parseInt(activeDecimal, 10);
     entry.number    = activeNumber;
-    //insertBack(numberHistory, entry);
-    console.log("Status of BAD_GUESS is: ", BAD_GUESS);
+   
+    //console.log("Status of BAD_GUESS is: ", BAD_GUESS);
     if (BAD_GUESS == true) {
         score += length(activeNumber);
-        console.log("Score addition after bad guess: ", score);
     }
     else {
         score += entry.decimal;
-        console.log("Score addition after initial good guess: ", score);
     }
     lastCorrectNumber = activeNumber;
     lastCorrectDecimal = activeDecimal;
-/*    x = 140;
-    y = screenHeight * 0.77 + h * 100;
-    color = LINE_COLOR;
-    fillString = activeNumber + " = " + activeDecimal
-    console.log("FILLSTRING: ", fillString);
-    fillText(fillString, x, y, color, NUMBER_STYLE, "center", "bottom");
-    nextPhaseTime = currentTime() + 1;
-    console.log("Going to Transition");*/
+    if (entry.decimal < 513) {
+        numberCorrectArray[entry.decimal] = numberCorrectArray[entry.decimal] + 1;
+    } 
+
     drawScreen(0);
     startTransition();
 }
@@ -628,35 +645,12 @@ function drawNumberHistory() {
     x = screenWidth / 2;
     y = screenHeight * 0.77 + h * 100;
     color = NUMBER_COLOR;
-    console.log("In drawNumberHistory");
-    console.log("\tLast Active Number: ", lastCorrectNumber);
-    console.log("\tLast Active Decimal: ", lastCorrectDecimal);
+
     if(length(lastCorrectNumber) > 0 && (isCorrect(lastCorrectNumber, lastCorrectDecimal))) {
         fillString = lastCorrectNumber + " = " + lastCorrectDecimal
-        console.log("FILLSTRING: ", fillString);
         fillText(fillString, x, y, color, NUMBER_STYLE, "center", "bottom");
     }
-    //nextPhaseTime = currentTime() + 1;
-
-    // Show up to five numbers from the numberHistory
-  /*  for (h = 0; h < min(length(numberHistory), 5); ++h) {
-        // NumberHistory goes backwards
-        entry = activeDecimal;
-
-        if (entry.decimal == 0) {
-            color = BAD_NUMBER_COLOR;
-        } else {
-            color = makeColor(0.2, 0.2, 0.2);
-        }*/
-        
-
-        // ***** THIS IS FOR THE TEXT BELOW THE PLAYING SCREEN *****
-        //fillText(score, x, y, color, NUMBER_STYLE, "left", "bottom");
-
-        // Draw points
-        //fillText("+" + numberWithCommas(score), screenWidth - x, y, color, 
-        //             "90px Arial", "right", "bottom");
-    //}
+    
 }
 
 
@@ -667,7 +661,6 @@ function numberWithCommas(n) {
 
 // Returns true iff the base 10 number entered is the correct translation of the binary value
 function isCorrect(w,decimal) {
-    console.log(w);
     totalValue = convertToDecimal(w)
     return totalValue == decimal;
 }
@@ -686,4 +679,47 @@ function convertToDecimal(binaryNum) {
         currentValue = currentValue * 2;
     }
     return totalValue;
+}
+
+// Display info on contents of array (for debugging purposes)
+function arrayInfo() {
+    var cutoff_levels_array = [0, 16, 32, 64, 128, 256, 512];
+    for(var i3 = 1; i3 < length(cutoff_levels_array); i3++) {
+        var percentCorrect = correctnessInfo(i3, cutoff_levels_array);
+        if (percentCorrect == -1) {
+            console.log("Level: ", i3, "No binary numbers converted to base 10");
+        }
+        else {
+            console.log("Level: ", i3, "Percent: ", percentCorrect);
+        }
+    }
+}
+
+// Determine percentage filled (helper method for arrayInfo)
+function correctnessInfo(level, cutoff_levels_array) {
+    var numCorrect = 0;
+    var numWrong = 0;
+    var rangeStart = cutoff_levels_array[level-1]
+    var rangeEnd = cutoff_levels_array[level]
+    for(var i4 = rangeStart; i4 < rangeEnd; i4++) {
+        if(!numberCorrectArray[i4] == 0) {
+            numCorrect = numCorrect + numberCorrectArray[i4];
+        }
+        if (!numberWrongArray[i4] == 0){
+            numWrong = numWrong + numberWrongArray[i4];
+        }
+    }
+    if (numCorrect + numWrong == 0) {
+        answer = -1;
+    }
+    else {
+        answer = (numCorrect * 100.0)/(numCorrect + numWrong);
+    }
+    
+    return answer;
+}
+
+// Determine overall correctness percentage
+function overallCorrectness() {
+    return (totCorrect * 100.0) / (totCorrect + totWrong);
 }
