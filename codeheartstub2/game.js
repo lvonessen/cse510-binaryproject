@@ -62,7 +62,7 @@ var BAD_GUESS = "";
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
 
-var TOTAL_GAME_TIME = 20; // seconds
+var TOTAL_GAME_TIME = 60; // seconds
 
 var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
@@ -233,6 +233,8 @@ function onTouchEnd(x, y, id) {
     var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
     
     activeDecimal = window.prompt(binaryPrompt);
+    console.log("Active number is: ", activeNumber);
+    console.log("Active decimal is: ", activeDecimal);
     if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
@@ -240,10 +242,10 @@ function onTouchEnd(x, y, id) {
         if (length(activeNumber) > 0) {
             
             // Is it a legal number?
-            if (length(activeNumber) >= minLength && (parseInt(activeNumber) == parseInt(activeDecimal))) {
-                processGoodGuess(activeDecimal)
+            if (length(activeNumber) >= minLength && isCorrect(activeNumber, activeDecimal)){
+                processGoodGuess();
             } else {
-                processBadGuess(activeDecimal);
+                processBadGuess();
             }
         }
     }
@@ -380,6 +382,7 @@ function processBadGuess() {
     var bx;
     var by;
     var entry;
+    console.log("PROCESSING BAD GUESS");
 
     entry        = makeObject();
     entry.points = 0;
@@ -411,14 +414,14 @@ function processBadGuess() {
 
 function processGoodGuess() {
     var entry;
-
+    console.log("PROCESSING GOOD GUESS");
     // Record this number in the numberHistory list
     entry         = makeObject();
-    entry.points  = pow(length(activeNumber) - 1, 3) * 50;
+    entry.decimal  = parseInt(activeDecimal, 10);
     entry.number    = toUpperCase(activeNumber);
-    insertBack(numberHistory, entry);
+    //insertBack(numberHistory, entry);
 
-    score        += entry.points;
+    score        += entry.decimal;
 
     startTransition();
 }
@@ -589,9 +592,9 @@ function drawNumberHistory() {
     // Show up to five numbers from the numberHistory
     for (h = 0; h < min(length(numberHistory), 5); ++h) {
         // NumberHistory goes backwards
-        entry = numberHistory[length(numberHistory) - h - 1];
+        entry = activeDecimal;
 
-        if (entry.points == 0) {
+        if (entry.decimal == 0) {
             color = BAD_NUMBER_COLOR;
         } else {
             color = makeColor(0.2, 0.2, 0.2);
@@ -600,18 +603,13 @@ function drawNumberHistory() {
         x = 140;
         y = screenHeight * 0.77 + h * 100;
 
-        fillText(entry.number, x, y, color, NUMBER_STYLE, "left", "bottom");
+        fillText(entry.word, x, y, color, NUMBER_STYLE, "left", "bottom");
+        // ***** THIS IS FOR THE TEXT BELOW THE PLAYING SCREEN *****
+        //fillText(score, x, y, color, NUMBER_STYLE, "left", "bottom");
 
-        if (entry.points == 0) {
-            // Strikethrough
-            strokeLine(x, y - 60, x + measureTextWidth(entry.number, NUMBER_STYLE),
-                       y - 60, color, 10);
-        } else {
-            // Draw points
-            fillText("+" + numberWithCommas(entry.points), screenWidth - x, y, color, 
-                     "90px Arial", "right", "bottom");
-        }
-
+        // Draw points
+        //fillText("+" + numberWithCommas(score), screenWidth - x, y, color, 
+        //             "90px Arial", "right", "bottom");
     }
 }
 
@@ -621,4 +619,25 @@ function numberWithCommas(n) {
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+// Returns true iff the base 10 number entered is the correct translation of the binary value
+function isCorrect(w,decimal) {
+    console.log(w);
+    totalValue = convertToDecimal(w)
+    return totalValue == decimal;
+}
 
+// Convert binary value to base 10 value
+function convertToDecimal(binaryNum) {
+    var l = length(binaryNum);
+    var current = l - 1;
+    var currentValue = 1;
+    var totalValue = 0;
+    while (current > -1) {
+        if (binaryNum[current] == "1") {
+            totalValue = totalValue + currentValue;
+        }
+        current = current - 1;
+        currentValue = currentValue * 2;
+    }
+    return totalValue;
+}
