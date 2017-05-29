@@ -7,6 +7,7 @@
 //					CONSTANT STATE					
 
 // DECLARE and INTIALIZE your constants here
+// start
 var START_TIME = currentTime();
 // amount of time, in seconds, before a tile falls down one slot
 var FALL_TIME = .1; //0.5;
@@ -17,14 +18,14 @@ var GEN_TIME = .3; //1;
 var BOARD_SIZE	 = 4;
 
 // In pixels
-var TILE_SIZE	 = 150;
+var TILE_SIZE	 = 175;
 var KEY_SIZE	 = TILE_SIZE * 1.5;
 var HEADER_SIZE = 200;
 
 // Distance between adjacent tiles 
 var ADJ_BUFFER = TILE_SIZE * 1.1;// * sqrt(2);
 
-var BOARD_WIDTH = 8;
+var BOARD_WIDTH = 6;
 var BOARD_HEIGHT = 7;// visible height + 1 for the invisible "next tile" row
 var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 					"empty": makeColor(234/256, 240/256, 250/256), 
@@ -41,6 +42,11 @@ var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
 
 var LINE_COLOR	 = makeColor(.5, .4, .3, 0.4);
 var GAME_NAME = "Binary Game" ;
+var TITLE_IMAGE_NAME = "title.png";
+
+
+var CONVERSION_PROMPT = "Enter decimal conversion for:";
+var CONVERSION_REPROMPT = "Incorrect. Please try again:";
 
 ///////////////////////////////////////////////////////////////
 //													
@@ -72,6 +78,11 @@ var score;
 
 // used by keypad
 var conversionPrompt = "";
+var binaryString;
+
+// set up game (and make vertical)
+// "V" means vertical
+defineGame(GAME_NAME, "Laura Vonessen & Emilia Gan", TITLE_IMAGE_NAME, "V", false);
 
 ///////////////////////////////////////////////////////////////
 //													
@@ -92,6 +103,12 @@ function onSetup() {
 function onKeyStart(key) {
 	lastKeyCode = key;
 	if (key == 32){
+		togglePause();
+	}
+}
+
+function setPaused(newPause){
+	if (paused != newPause ){
 		togglePause();
 	}
 }
@@ -165,6 +182,7 @@ function onTouchEnd(x, y, id) {
 	// condition to show key pad
 	if (touchID == id && selectedTiles.length > 0) {
 		touchID = -1;
+		setPaused(true);
 		showKeyPad();
 	}
 }
@@ -316,13 +334,13 @@ function resetSelectedTiles(){
 
 // show key pad
 function showKeyPad() {
-	conversionPrompt = "Enter decimal conversion for: "+asBinaryString(selectedTiles);
+	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
 // re-prompt
 function reShowKeyPad(){
-	conversionPrompt = "Incorrect. Enter a new conversion for: "+asBinaryString(selectedTiles);
+	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
 
@@ -333,39 +351,16 @@ function onKeyPadCancel(){
 // jQuery keypad in play.html calls this method 
 function checkAns(decimal){
 
-	// TODO: comment out later
-	// score = score + parseInt(decimal, 10);
-
 	// Was there a number entered?
 	if (selectedTiles.length > 0) {
-		// Was it a good length?
-		if (true) {//(selectedTiles.length >= minLength) {
-			// Was it a good conversion?
-			if (isCorrect(asBinaryString(selectedTiles), decimal)) {
-				/*nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-				if (SHOW_BAD_NUMBER == 0){*/
-					score = score + parseInt(decimal, 10);
-				/*} else {
-					score = score + selectedTiles.length;
-				}
-				if (minLength < maxLength) {
-					minLength = minLength + 1;
-				}*/
-				removeSelectedTiles();
-				//phase = SHOW_GOOD_NUMBER;
-				//SHOW_BAD_NUMBER = 0;					
-			}
-			else {
-				//SHOW_BAD_NUMBER = 1;
-				reShowKeyPad();
-			}
+		// Was it a good conversion?
+		if (isCorrect(asBinaryString(selectedTiles), decimal)) {
+			score = score + parseInt(decimal, 10);
+			removeSelectedTiles();
+			return true;
 		}
-		else {
-			alert("You need to select a number that is " + minLength + " tiles long.");
-			resetBoard();
-		} 
 	}
-	drawScreen();
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////
@@ -441,12 +436,13 @@ function convertxyCentered(x,y,w,b) {
 }
 
 function boardTopLeft(){
+	var xMargin = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2;
 	var obj = {
 		// SW-TS*BW is the sum of horizontal margins (in pixels)
-		x: (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2,
+		x: xMargin,
 		// (SH-HS)...+HS leaves vertical space for a title
 		// BH-1 ignores row 0
-		y: ((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
+		y: screenHeight - xMargin - TILE_SIZE * (BOARD_HEIGHT-1) //((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
 	}
 	return obj;
 }
@@ -497,6 +493,20 @@ function asBinaryString(tiles){
 		str += tiles[i].binary;	
 	}
 	return str;
+}
+
+function prettyBinaryString(str){
+	var i;
+	
+	// strip leading zeroes
+	while (str.length > 1 && str.charAt(0)=="0"){
+		str = str.slice(1);
+	}
+	
+	for (i = str.length - 3; i > 0; i -= 3){
+		str = str.slice(0,i) + " " + str.slice(i);
+	}
+	return str + "<sub>2</sub>";
 }
 
 // Returns true iff the decimal entered is the correct translation of the binary value
