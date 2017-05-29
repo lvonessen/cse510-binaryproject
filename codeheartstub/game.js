@@ -10,9 +10,9 @@
 // start
 var START_TIME = currentTime();
 // amount of time, in seconds, before a tile falls down one slot
-var FALL_TIME = .5; //0.5;
+var FALL_TIME = .2; //0.5;
 // time, in seconds, until the next tile gets generated
-var GEN_TIME = 1;//.3; //1; 
+var GEN_TIME = .6;//.3; //1; 
 var BONUS_DELAY = 2;
 
 // In tiles
@@ -480,12 +480,6 @@ function updateStats(score){
 
 // show key pad
 function showKeyPad() {
-	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
-	document.getElementById("show-key-pad").click();
-}
-
-// re-prompt
-function reShowKeyPad(){
 	binaryString = prettyBinaryString(asBinaryString(selectedTiles));
 	document.getElementById("show-key-pad").click();
 }
