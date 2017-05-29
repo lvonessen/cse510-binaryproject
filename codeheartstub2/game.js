@@ -23,6 +23,8 @@ var INACTIVE_IMAGE      = loadImage("regular-button.png");
 var INACTIVE_BONUS_IMAGE  = loadImage("bonus-button.png");
 var ACTIVE_IMAGE    = loadImage("active-button.png");
 var ACTIVE_BONUS_IMAGE        = ACTIVE_IMAGE;
+var NUMBER_ATTEMPTED = 4;
+var PERCENT_CORRECT = 50;
 
 var GAME_OVER_IMAGE           = loadImage("gameover.png");
 
@@ -63,7 +65,7 @@ var BAD_GUESS = false;
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
 
-var TOTAL_GAME_TIME = 60; // seconds
+var TOTAL_GAME_TIME = 120; // seconds
 
 var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
@@ -138,6 +140,10 @@ var activeNumber = "";
 // The current decimal guess
 var activeDecimal;
 
+// Current game level (Levels start at 1 (2-digit binary numbers) and
+// go to Level 6 (9-digit binary numbers)).
+var currentLevel = 1;
+
 // The minimum and maximum length allowed for activeNumber
 var minLength = 2;
 var maxLength = 10;
@@ -197,7 +203,6 @@ function onTouchStart(x, y, id) {
     }
 }
 
-
 function onTouchMove(x, y, id) {
     if (phase != PLAYING) {
         return;
@@ -250,31 +255,32 @@ function onTouchMove(x, y, id) {
     }
 }
 
-
 function onTouchEnd(x, y, id) {
-    var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
-    
-    activeDecimal = window.prompt(binaryPrompt);
 
     if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
-        // Was any number at all entered?
-        if (length(activeNumber) > 0) {
+        // Was the number entered of legal length?
+        if (length(activeNumber) >= minLength) {
+            var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
+            activeDecimal = window.prompt(binaryPrompt);
             
-            // Is it a legal number?
-            if (length(activeNumber) >= minLength && isCorrect(activeNumber, activeDecimal)){
+            // Is it a correct conversion from binary to base 10?
+            if (isCorrect(activeNumber, activeDecimal)){
                 processGoodGuess();
+                activeNumber = "";
             } else {
                 ++badNumberCount;
                 processBadGuess();
+                activeNumber = "";
             }
         }
+        else {
+            var alertString = "You need to select a number with at least " + minLength + " digits!";
+            window.alert(alertString);   
+        }
     }
-    activeNumber = "";
 }
-
-
 
 function onTick() {
     // Update the timer
@@ -308,7 +314,7 @@ function onTick() {
             
             // Don't let a new game start for at least one second to
             // prevent touches that happened right when we switched modes
-            nextPhaseTime = currentTime() + 1;
+            nextPhaseTime = currentTime() + 3;
             drawGameOverScreen();
         }
     }
@@ -321,7 +327,7 @@ function onTick() {
 function drawGameOverScreen() {
     var x, y;
     drawImage(GAME_OVER_IMAGE);
-    arrayInfo();
+    printArrayInfo();
     console.log("Total Attempted: ", totWrong + totCorrect);
     console.log("Total Correct: ", totCorrect);
     console.log("Total Wrong: ", totWrong);
@@ -628,9 +634,10 @@ function drawBoard(board, xoffset) {
 
 // Fix to display game info
 function drawNumberHistory() {
-    var h = 1;
+    //var h = 1;
     var color;
     var fillString;
+    var levelString;
     //var entry;
     var x, y;
     
@@ -643,13 +650,21 @@ function drawNumberHistory() {
              "bold 95px Arial", "center", "top");
 
     x = screenWidth / 2;
-    y = screenHeight * 0.77 + h * 100;
+    y = screenHeight * 0.77 + 100;
     color = NUMBER_COLOR;
 
     if(length(lastCorrectNumber) > 0 && (isCorrect(lastCorrectNumber, lastCorrectDecimal))) {
         fillString = lastCorrectNumber + " = " + lastCorrectDecimal
         fillText(fillString, x, y, color, NUMBER_STYLE, "center", "bottom");
     }
+
+    if(changeLevel() == true){
+        levelString = "Congratulations! You have just reached LEVEL " + currentLevel;
+    }
+    else {
+        levelString = "Level " + currentLevel
+    }
+    fillText(levelString, x, y + 100, color, NUMBER_STYLE, "center", "bottom");
     
 }
 
@@ -681,26 +696,58 @@ function convertToDecimal(binaryNum) {
     return totalValue;
 }
 
-// Display info on contents of array (for debugging purposes)
+// Calculates info on player performance.
+// Used to determine level changes and monitor learning.
 function arrayInfo() {
-    var cutoff_levels_array = [0, 16, 32, 64, 128, 256, 512];
-    for(var i3 = 1; i3 < length(cutoff_levels_array); i3++) {
-        var percentCorrect = correctnessInfo(i3, cutoff_levels_array);
-        if (percentCorrect == -1) {
-            console.log("Level: ", i3, "No binary numbers converted to base 10");
+    var cutoffLevelsArray = [0, 16, 32, 64, 128, 256, 512];
+    var totalResponsesCounts = [0, 0, 0, 0, 0, 0, 0];
+    var correctResponsesPercents = [0, 0, 0, 0, 0, 0, 0];
+
+    for(var i3 = 1; i3 < length(cutoffLevelsArray); i3++) {
+        var answer = correctnessInfo(i3, cutoffLevelsArray);
+
+        if (answer[1] == -1) {
+            totalResponsesCounts[i3] = 0;
+            correctResponsesPercents[i3] = -1;
+            //console.log("Level: ", i3, "No binary numbers converted to base 10");
         }
         else {
-            console.log("Level: ", i3, "Percent: ", percentCorrect);
+            totalResponsesCounts[i3] = answer[0];
+            correctResponsesPercents[i3] = answer[1];
+            //console.log("Level: ", i3, "Total Attempted: ", totalResponsesCounts[i3], "Percent: ", correctResponsesPercents[i3]);
+        }
+    }
+    return [totalResponsesCounts, correctResponsesPercents]
+}
+
+// Displays info on contents of array (for debugging purposes).
+// Outputs to console.
+function printArrayInfo() {
+    var toPrint = arrayInfo();
+    var printCounts = toPrint[0];
+    var printPercents = toPrint[1];
+    for(var i5 = 1; i5<length(printCounts); i5++) {
+        if (printPercents[i5] == -1)
+        {
+            console.log("LEVEL: ", i5, "NUMBER ATTEMPTED: ", printCounts[i5], "PERCENT CORRECT: N/A");
+        }
+        else {
+            console.log("LEVEL: ", i5, "NUMBER ATTEMPTED: ", printCounts[i5], "PERCENT CORRECT: ", printPercents[i5]);
         }
     }
 }
 
 // Determine percentage filled (helper method for arrayInfo)
-function correctnessInfo(level, cutoff_levels_array) {
+function correctnessInfo(level, cutoffLevelsArray) {
     var numCorrect = 0;
     var numWrong = 0;
-    var rangeStart = cutoff_levels_array[level-1]
-    var rangeEnd = cutoff_levels_array[level]
+    var numTotal = 0;
+    var answerPercent;
+    var answerToReturn;
+
+    var rangeStart = cutoffLevelsArray[level-1]
+    var rangeEnd = cutoffLevelsArray[level]
+
     for(var i4 = rangeStart; i4 < rangeEnd; i4++) {
         if(!numberCorrectArray[i4] == 0) {
             numCorrect = numCorrect + numberCorrectArray[i4];
@@ -709,17 +756,39 @@ function correctnessInfo(level, cutoff_levels_array) {
             numWrong = numWrong + numberWrongArray[i4];
         }
     }
-    if (numCorrect + numWrong == 0) {
-        answer = -1;
+    numTotal = numCorrect + numWrong;
+    if (numTotal == 0) {
+        answerPercent = -1;
     }
     else {
-        answer = (numCorrect * 100.0)/(numCorrect + numWrong);
+        answerPercent = (numCorrect * 100.0)/(numTotal);
     }
     
-    return answer;
+    return [numTotal, answerPercent];
 }
 
 // Determine overall correctness percentage
 function overallCorrectness() {
     return (totCorrect * 100.0) / (totCorrect + totWrong);
+}
+
+// Determine is player is eligible to advance a level
+// Levels Information:
+// Level 1: minLength = 2, base 10 values through 15 (binary 1111)
+// Level 2: minLength = 3, base 10 values through 31 (binary 11111)
+// Level 3: minLength = 4, base 10 values through 63 (binary 111111)
+// Level 4: minLength = 5, base 10 values through 127 (binary 1111111)
+// Level 5: minLength = 6, base 10 values through 255 (binary 11111111)
+// Level 6: minLength = 7, base 10 values through 511 (binary 111111111)
+function changeLevel() {
+    var data = arrayInfo();
+    var currentCounts = data[0];
+    var currentPercents = data[1];
+
+    if(currentCounts[currentLevel+1] > NUMBER_ATTEMPTED && currentPercents[currentLevel+1] >= PERCENT_CORRECT) {
+        currentLevel += 1;
+        minLength += 1;
+        return true;
+    }
+    return false;
 }
