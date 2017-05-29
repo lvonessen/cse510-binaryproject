@@ -56,11 +56,15 @@ var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 
 var NUMBER_STYLE  = "100px Times New Roman";
 
+var GOOD_GUESS = "";
+var BAD_GUESS = "";
+
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
 
 var TOTAL_GAME_TIME = 120; // seconds
 
+var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
 ///////////////////////////////////////////////////////////////
 //                                                           //
@@ -106,7 +110,14 @@ var oldBoard;
 var touchID;
 
 // The number that is currently being formed
-var activeNumber;
+var activeNumber = "";
+
+// The current decimal guess
+var activeDecimal;
+
+// The minimum length allowed for activeNumber
+var minLength = 2;
+var maxLength = 10;
 
 // Array of objects.  Each contains "number" and count.  
 var numberHistory;
@@ -134,6 +145,7 @@ function onSetup() {
     // In the past
     nextPhaseTime  = 0;
     score          = 0;
+    minLength      = 2;
 
     board          = createRandomBoard();
 
@@ -218,20 +230,24 @@ function onTouchMove(x, y, id) {
 
 
 function onTouchEnd(x, y, id) {
+    var binaryPrompt = "Enter in your decimal conversion for: " + activeNumber;
+    
+    activeDecimal = window.prompt(binaryPrompt);
     if ((phase == PLAYING) && (touchID == id)) {
         touchID = NONE;
 
         // Was any number at all entered?
         if (length(activeNumber) > 0) {
-
+            
             // Is it a legal number?
-            if ((length(activeNumber) >= 3) && isNumber(activeNumber)) {
-                processGoodGuess()
+            if (length(activeNumber) >= minLength && (parseInt(activeNumber) == parseInt(activeDecimal))) {
+                processGoodGuess(activeDecimal)
             } else {
-                processBadGuess();
+                processBadGuess(activeDecimal);
             }
         }
     }
+    activeNumber = "";
 }
 
 
