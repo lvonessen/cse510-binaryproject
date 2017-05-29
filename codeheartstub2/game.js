@@ -358,11 +358,13 @@ function drawGameOverScreen() {
     var gameOverString1 = "GAME OVER!";
     var gameOverString2 = "Binary counting skill level is: " + skillLevel;
     var gameOverString3;
-    if(!nextLevel == "Genius") {
-        gameOverString3 = "Play again to try advancing to the next level: ";
+    if(skillLevel == "Genius") {
+        console.log("TRUE");
+        gameOverString3 = "";
     }
     else {
-        gameOverString3 = "";
+        console.log("FALSE");
+        gameOverString3 = "Play again to try advancing to the next level: ";
     }
     var gameOverString4 = nextLevel;    
 
