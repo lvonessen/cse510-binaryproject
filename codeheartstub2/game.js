@@ -23,6 +23,8 @@ var INACTIVE_IMAGE      = loadImage("regular-button.png");
 var INACTIVE_BONUS_IMAGE  = loadImage("bonus-button.png");
 var ACTIVE_IMAGE    = loadImage("active-button.png");
 var ACTIVE_BONUS_IMAGE        = ACTIVE_IMAGE;
+var NUMBER_ATTEMPTED = 4;
+var PERCENT_CORRECT = 50;
 
 var GAME_OVER_IMAGE           = loadImage("gameover.png");
 
@@ -63,7 +65,7 @@ var BAD_GUESS = false;
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
 
-var TOTAL_GAME_TIME = 60; // seconds
+var TOTAL_GAME_TIME = 120; // seconds
 
 var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
@@ -783,7 +785,7 @@ function changeLevel() {
     var currentCounts = data[0];
     var currentPercents = data[1];
 
-    if(currentCounts[currentLevel+1] > 5 && currentPercents[currentLevel+1] >= 60) {
+    if(currentCounts[currentLevel+1] > NUMBER_ATTEMPTED && currentPercents[currentLevel+1] >= PERCENT_CORRECT) {
         currentLevel += 1;
         minLength += 1;
         return true;
