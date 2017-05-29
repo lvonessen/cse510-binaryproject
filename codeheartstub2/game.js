@@ -62,7 +62,7 @@ var BAD_GUESS = "";
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
 var MAX_BAD_NUMBERS  = 3;
 
-var TOTAL_GAME_TIME = 120; // seconds
+var TOTAL_GAME_TIME = 20; // seconds
 
 var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 
@@ -300,16 +300,77 @@ function drawGameOverScreen() {
 
     fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
     
-    c = 0;
-    for (i = 0; i < length(numberHistory); ++i) {
-        if (numberHistory[i].points > 0) {
-            // Three columns
-            x = (c % 3) * 400 + 75;
-            y = 500 + floor(c / 3) * 75;
-            fillText(numberHistory[i].number, x, y, makeColor(0.2, 0.2, 0.2), "75px Times New Roman", "left", "bottom");
-            c = c + 1;
-        }
+    fillText("Score: " + numberWithCommas(score), screenWidth / 2, 250, makeColor(0,0,0), "bold 95px Arial", "center", "top");
+
+    // Determine skill level gained and next skill level
+    var skillLevel;
+    if (score < 128) {
+        skillLevel = "Novice";
     }
+    else if (score < 256) {
+        skillLevel = "Beginner";
+    }
+    else if (score < 512) {
+        skillLevel = "Pretty Good";
+    }
+    else if (score < 1024) {
+        skillLevel = "Advanced";
+    }
+    else if (score < 2048) {
+        skillLevel = "Expert";
+    }
+    else {
+        skillLevel = "Genius";
+    }
+
+    var nextLevel;
+    switch (skillLevel)
+    {
+       case "Novice": 
+        nextLevel = "Beginner";
+        break;
+       
+       case "Beginner": 
+        nextLevel = "Pretty Good";
+        break;
+       
+       case "Pretty Good": 
+        nextLevel = "Advanced";
+        break;
+
+       case "Advanced": 
+        nextLevel = "Expert";
+        break;
+
+       case "Expert": 
+        nextLevel = "Genius";
+        break;
+       
+       default: 
+        nextLevel = "This game has no chance against you!";
+    }
+
+    
+    console.log("YOUR SKILL LEVEL IS: " + skillLevel);
+    console.log("Next Skill Level: " + nextLevel);
+    console.log("SCORE: " + score.toString());
+
+    var gameOverString1 = "GAME OVER!";
+    var gameOverString2 = "Binary counting skill level is: " + skillLevel;
+    var gameOverString3;
+    if(!nextLevel == "Genius") {
+        gameOverString3 = "Play again to try advancing to the next level: ";
+    }
+    else {
+        gameOverString3 = "";
+    }
+    var gameOverString4 = nextLevel;    
+
+    fillText(gameOverString1, screenWidth / 2, screenHeight * 0.6, makeColor(0.2, 0.2, 0.2), "bold 95px Arial", "center", "bottom");
+    fillText(gameOverString2, screenWidth / 2, screenHeight * 0.675, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+    fillText(gameOverString3, screenWidth / 2, screenHeight * 0.725, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+    fillText(gameOverString4, screenWidth / 2, screenHeight * 0.775, makeColor(0.2, 0.2, 0.2), "bold 45px Arial", "center", "bottom");
+
 }
 
 
