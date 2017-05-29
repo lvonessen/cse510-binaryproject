@@ -54,9 +54,10 @@ var ANIMATE_TRANSITION_TIME = 0.4; // seconds
 
 var LINE_COLOR     = makeColor(.5, .4, .3, 0.4);
 
-var NUMBER_STYLE  = "100px Times New Roman";
+var NUMBER_STYLE  = "100px Arial";
 
 //var GOOD_GUESS = "";
+var NUMBER_COLOR = makeColor(0, 0.6, 0);
 var BAD_GUESS = false;
 
 var BAD_NUMBER_COLOR = makeColor( 0.6, 0, 0);
@@ -70,8 +71,18 @@ var PERCENT_BONUS = 10; // percentage of tiles to designate as "bonus" tiles
 //                                                           //
 //                     MUTABLE STATE                         //
 
+// Numbers converted and counts
+var numberArray;
+for (var i = 0, numberArray = []; i < 1023; i++) numberArray.push(0);
+
 // Player's current points
 var score;
+
+// Last number converted correctly on first attempt
+var lastCorrectNumber = "";
+
+// Last correct base 10 conversion
+var lastCorrectDecimal = "";
 
 // PLAYING or TRANSITION
 var phase;
@@ -93,7 +104,7 @@ var lastRedrawTime;
 
 var board = {
     // (x, y) coordinates of the centers of the tiles that have been
-    // touched to spell activeNumber, in order
+    // touched to form activeNumber, in order
     activeNumberLine : [],
 
     // tile[x][y] is the tile at that location in the grid.
@@ -115,7 +126,7 @@ var activeNumber = "";
 // The current decimal guess
 var activeDecimal;
 
-// The minimum length allowed for activeNumber
+// The minimum and maximum length allowed for activeNumber
 var minLength = 2;
 var maxLength = 10;
 
@@ -383,12 +394,9 @@ function processBadGuess() {
     BAD_GUESS = true;
     var bx;
     var by;
-    var entry;
     var binaryBadPrompt = "That is incorrect. Enter in a new conversion for: " + activeNumber;
 
     console.log("PROCESSING BAD GUESS");
-    //entry        = makeObject();
-    //entry.number   = parseInt(activeNumber);
 
     while (badNumberCount < MAX_BAD_NUMBERS) {
         console.log("Bad Number Count: ", badNumberCount);
@@ -396,27 +404,14 @@ function processBadGuess() {
         console.log("Current BASE 10 guess: ", activeDecimal);
         // Give player another chance to enter good guess
         activeDecimal = window.prompt(binaryBadPrompt);
-        //decimal = activeDecimal;
+    
         if (isCorrect(activeNumber, activeDecimal)) {
-            //SHOW_BAD_NUMBER = 0;
             processGoodGuess();
             break;
-            //nextPhaseTime = currentTime() + SHOW_NUMBER_TIME;
-            //phase         = SHOW_GOOD_NUMBER;
-            
-            //console.log("UPDATED (bad) SCORE: " + score.toString());
-            //drawScreen();
-            //break;
         }
         else {
             ++badNumberCount;
         }
-
-        //BAD_GUESS = parseInt(activeDecimal); // ****** DO I NEED/USE THIS?
-        //insertBack(numberHistory, entry);
-
-        // TODO: Play buzzer sound
-
         
         // Clear the pushed buttons
         for (bx = 0; bx < BOARD_SIZE; ++bx) {
@@ -424,10 +419,8 @@ function processBadGuess() {
                 board.tile[bx][by].active = false;
             }
         }
-        //board.activeNumberLine = [];
-        //activeNumber     = "";
-        //drawScreen(0);
     }
+    drawScreen(0);
     
     if (badNumberCount == MAX_BAD_NUMBERS) {
         // Give up and transition to next board
@@ -437,7 +430,9 @@ function processBadGuess() {
 }
 
 function processGoodGuess() {
+    //var h = 1; // change if number of lines of text in fillString changes
     var entry;
+    var fillString = "";
     console.log("PROCESSING GOOD GUESS");
     // Record this number in the numberHistory list
     entry         = makeObject();
@@ -453,8 +448,17 @@ function processGoodGuess() {
         score += entry.decimal;
         console.log("Score addition after initial good guess: ", score);
     }
-    
-
+    lastCorrectNumber = activeNumber;
+    lastCorrectDecimal = activeDecimal;
+/*    x = 140;
+    y = screenHeight * 0.77 + h * 100;
+    color = LINE_COLOR;
+    fillString = activeNumber + " = " + activeDecimal
+    console.log("FILLSTRING: ", fillString);
+    fillText(fillString, x, y, color, NUMBER_STYLE, "center", "bottom");
+    nextPhaseTime = currentTime() + 1;
+    console.log("Going to Transition");*/
+    drawScreen(0);
     startTransition();
 }
 
@@ -485,8 +489,7 @@ function resetBoard() {
     drawScreen(0);
 }
 
-// Generates a new random board.  Guarantees at least two vowels and no more 
-// than five
+// Generates a new random board.
 function createRandomBoard() {
     var bx;
     var by;
@@ -517,7 +520,6 @@ function createRandomBoard() {
 
     return board;
 }
-
 
 // Generates a random number, "0" or "1".
 function randomNumber() {
@@ -555,7 +557,7 @@ function createTrim() {
 }
 
 
-
+//Creates board with tiles each in proper status
 function drawBoard(board, xoffset) {
     var BORDER = 4;
     var BORDER_COLOR = makeColor(0.4, 0.4, 0.4);
@@ -607,11 +609,12 @@ function drawBoard(board, xoffset) {
     strokeSpline(spline, LINE_COLOR, 60);
 }
 
-
+// Fix to display game info
 function drawNumberHistory() {
-    var h;
+    var h = 1;
     var color;
-    var entry;
+    var fillString;
+    //var entry;
     var x, y;
     
     // Timer bar:
@@ -622,8 +625,21 @@ function drawNumberHistory() {
              makeColor(0.1, 0.6, 0.3),
              "bold 95px Arial", "center", "top");
 
+    x = screenWidth / 2;
+    y = screenHeight * 0.77 + h * 100;
+    color = NUMBER_COLOR;
+    console.log("In drawNumberHistory");
+    console.log("\tLast Active Number: ", lastCorrectNumber);
+    console.log("\tLast Active Decimal: ", lastCorrectDecimal);
+    if(length(lastCorrectNumber) > 0 && (isCorrect(lastCorrectNumber, lastCorrectDecimal))) {
+        fillString = lastCorrectNumber + " = " + lastCorrectDecimal
+        console.log("FILLSTRING: ", fillString);
+        fillText(fillString, x, y, color, NUMBER_STYLE, "center", "bottom");
+    }
+    //nextPhaseTime = currentTime() + 1;
+
     // Show up to five numbers from the numberHistory
-    for (h = 0; h < min(length(numberHistory), 5); ++h) {
+  /*  for (h = 0; h < min(length(numberHistory), 5); ++h) {
         // NumberHistory goes backwards
         entry = activeDecimal;
 
@@ -631,19 +647,16 @@ function drawNumberHistory() {
             color = BAD_NUMBER_COLOR;
         } else {
             color = makeColor(0.2, 0.2, 0.2);
-        }
+        }*/
         
-        x = 140;
-        y = screenHeight * 0.77 + h * 100;
 
-        fillText(entry.word, x, y, color, NUMBER_STYLE, "left", "bottom");
         // ***** THIS IS FOR THE TEXT BELOW THE PLAYING SCREEN *****
         //fillText(score, x, y, color, NUMBER_STYLE, "left", "bottom");
 
         // Draw points
         //fillText("+" + numberWithCommas(score), screenWidth - x, y, color, 
         //             "90px Arial", "right", "bottom");
-    }
+    //}
 }
 
 
