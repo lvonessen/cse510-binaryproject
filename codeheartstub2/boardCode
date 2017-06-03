@@ -1,0 +1,247 @@
+// NEW BOARD FORMATTING ************
+
+///////////////////////////////////////////////////////////////
+//                                                           //
+//                    CONSTANT STATE                         //
+
+// TODO: DECLARE and INTIALIZE your constants here
+var START_TIME = currentTime();
+
+// Board info:
+var OCT_WIDTH = 150;
+var TILE_SIZE    = OCT_WIDTH + 50;
+var BLOCK_SIZE  = OCT_WIDTH / 3.0;
+// Distance between adjacent tiles 
+var ADJ_BUFFER = TILE_SIZE/3.0;// * sqrt(2);
+var BOARD_WIDTH = 4;
+var BOARD_HEIGHT = 4;
+
+var COLORS = {"background": makeColor(245/256, 248/256, 253/256),
+                    "unselected": makeColor(111/256, 148/256, 220/256),
+                    "selected": makeColor(56/256, 74/256, 110/256),
+                    "bonusFound": makeColor(0,1,0),
+                    "bonusMissing": makeColor(1,0,0)};
+
+///////////////////////////////////////////////////////////////
+//                                                           //
+//                     MUTABLE STATE                         //
+
+// TODO: DECLARE your variables here
+var lastKeyCode;
+
+var board;
+
+var oneThreshold = 0.5;
+
+var gameStarted = false;
+
+var startButton;
+
+///////////////////////////////////////////////////////////////
+//                                                           //
+//                      EVENT RULES                          //
+
+// When setup happens...
+function onSetup() {
+    // TODO: INITIALIZE your variables here
+    lastKeyCode = 0;
+    drawGameIntroScreen();
+    //initializeBoard();
+    //drawScreen();
+}
+
+
+// When a key is pushed
+function onKeyStart(key) {
+    lastKeyCode = key;
+    // In case we want to use the space bar for some other
+    // function later (e.g. to pause game play).
+    if (key == 32) {
+        if (gameStarted == false) {
+            initializeBoard();
+            drawScreen();
+            gameStarted = true;
+        }
+    }
+}
+
+
+// Called 30 times or more per second
+function onTick() {
+    // Some sample drawing 
+    //initializeBoard();
+    //drawScreen();
+
+}
+
+function drawGameIntroScreen() {
+    // Background
+
+    var textIndex;
+    var introText1 = "This game will test how skilled you are at reading binary numbers.";
+    var introText2 = "Drag the cursor from number to number to select two or more number tiles.";
+    var introText3 = "Enter in your base 10 equivalent for the binary number displayed by your selected tiles.";
+    var introText4 = "If your first submission is correct, your score will increase by the base 10 equivalent of your number.";
+    var introText5 = "If you need more than one attempt to correctly give the base 10 conversion,";
+    var introText6 = "your score will increase based on the number of tiles used to display the binary value.";
+    var introText7 = "As you prove your skill, the minimum length of the binary number you are required to select will increase."; 
+    var introText8 = "(Note: You are always free to select a binary number that is LONGER than the required minimum length!)";
+    var introText9 = "You have 120 seconds to prove your skill!";
+    var introText10 = "GOOD LUCK!";
+    var blankline = "";
+    var introText11 = "Click on the button below or on the space bar to START.";
+
+    var textArray = [introText1,introText2,introText3,blankline,introText4,introText5,
+    introText6,blankline,introText7,introText8,blankline,introText9,blankline,introText10,blankline,introText11];
+
+    fillRectangle(0, 0, screenWidth, screenHeight, makeColor(0.8,0.8,0.8)); 
+    for (textIndex = 0; textIndex < textArray.length; textIndex++) {
+        fillText(textArray[textIndex], screenWidth/2.0, screenHeight/8.0 + textIndex*50, makeColor(0,0,0), "bold 35px Arial", "center", "top");
+    }
+
+    fillCircle(screenWidth/2.0, screenHeight-150, 100, makeColor(0,0.8,0))
+    startButton = setTouchKeyCircle(32, screenWidth/2.0, screenHeight-150, 100, "START");
+    fillText("START", screenWidth/2.0, screenHeight-150,makeColor(0,0,0), "bold 35px Arial", "center", "middle");
+
+
+}
+
+function drawScreen() {
+    var BORDER = OCT_WIDTH/6.0;
+    var BORDER_COLOR = makeColor(0.8, 0.8, 0.8);
+
+    // corner radius, in pixels
+    var CORNER = 10;
+
+    var x;
+    var y;
+    var tile;
+    var bx;
+    var by;
+    var sideLength;
+    var i;
+
+
+    // Background
+    fillRectangle(0, 0, screenWidth, screenHeight, COLORS["background"]); // screen background (that background rectangle sits on)
+    
+    // Board background
+    var boardTL = boardTopLeft();
+    fillRectangle(boardTL.x-BORDER, boardTL.y-BORDER,2*BORDER+ BOARD_WIDTH*TILE_SIZE, 2*BORDER+BOARD_HEIGHT*TILE_SIZE, BORDER_COLOR, CORNER);
+
+    // Board
+    for (bx = 0; bx < BOARD_WIDTH; bx ++) {
+
+        for (by = 0; by < BOARD_HEIGHT; by ++) {
+            tile = board[bx][by];
+            dim = convertxyCentered(tile.center.x,tile.center.y,TILE_SIZE,BORDER);
+            var unit = dim.sideLength/3.0;
+            var points = [dim.x+unit, dim.y, dim.x+2*unit, dim.y, dim.x+3*unit, dim.y+1*unit, dim.x+3*unit, dim.y+2*unit, 
+            dim.x+2*unit, dim.y+3*unit, dim.x+unit, dim.y+3*unit, dim.x, dim.y+2*unit, dim.x, dim.y+unit];
+
+            // top
+            
+            //fillPolygon([dim.x, dim.y, dim.x+dim.sideLength, dim.y, dim.x+dim.sideLength, dim.y+dim.sideLength, dim.x, dim.y+dim.sideLength], COLORS[tile.state]);
+            //fillRectangle(dim.x, dim.y, dim.sideLength, dim.sideLength, COLORS[tile.state], CORNER);
+            fillPolygon(points, COLORS[tile.state]);
+            if (bx < BOARD_WIDTH - 1) {
+                fillRectangle(dim.x + dim.sideLength, dim.y + dim.sideLength/3.0, BLOCK_SIZE , BLOCK_SIZE, COLORS[tile.state], 0);
+            }
+            if (by < BOARD_HEIGHT - 1) {
+                fillRectangle(dim.x + dim.sideLength/3.0, dim.y + dim.sideLength, BLOCK_SIZE , BLOCK_SIZE, COLORS[tile.state], 0);
+            }
+
+            // label
+            fillText(tile.binary, tile.center.x , tile.center.y ,    
+                     makeColor(0.2, 0.2, 0.2), 
+                     "" + round(TILE_SIZE * 0.65) + "px Times New Roman", 
+                     "center", 
+                     "middle");
+        }
+    }
+}
+
+// top left x,y, width, and border
+function convertxyCentered(x,y,w,b) {
+    var obj = {
+        x: x-w/2+b,
+        y: y-w/2+b,
+        sideLength: w - 2*b 
+    }
+    return obj;
+}
+
+function boardTopLeft(){
+    var xMargin = (screenWidth - TILE_SIZE * BOARD_WIDTH) / 2;
+    var obj = {
+        // SW-TS*BW is the sum of horizontal margins (in pixels)
+        x: xMargin,
+        // (SH-HS)...+HS leaves vertical space for a title
+        y: screenHeight - xMargin - TILE_SIZE * (BOARD_HEIGHT)/2 //((screenHeight - HEADER_SIZE) - TILE_SIZE * (BOARD_HEIGHT-1) ) / 2 + HEADER_SIZE
+    }
+    //var a = obj[x];
+    //console.log(obj[x]);
+    //console.log(obj);
+    return obj;
+}
+
+
+///////////////////////////////////////////////////////////////
+//                                                           //
+//                      HELPER RULES                         //
+
+// Generates a random board.
+function initializeBoard() {
+    var x;
+    var y;
+    var tile;
+    var boardTL = boardTopLeft();
+    
+    visZeroes = 0;
+    
+    selectedTiles = [];
+
+    // Create an array of columns
+    board = [];
+
+    for (x = 0; x < BOARD_WIDTH; x ++) {
+        // Create this column
+        board[x] = [];
+
+        
+        for (y = 0; y < BOARD_HEIGHT; y ++) {
+            tile = makeObject();
+            
+            // Center of the tile in pixels
+            tile.center = makeObject();         
+            tile.center.x = boardTL.x + (x+.5) * TILE_SIZE;
+            tile.center.y = boardTL.y + (y+.5) * TILE_SIZE;
+            
+            board[x][y] = tile;
+            
+            // set text, state
+            //resetTile(tile);
+        }
+    }
+    
+    // give something to work with
+    for (x = 0; x < BOARD_WIDTH; x ++) {
+        for (y = 0; y < BOARD_HEIGHT; y++) {
+            board[x][y].binary = generateDigit();
+            board[x][y].state = "unselected";
+            //numTilesInCol[x]++;
+            //visTiles ++;
+            if (board[x][y].binary == 0){
+                visZeroes ++;
+            }
+        }
+    }
+}
+
+function generateDigit(){
+    var digit = Math.random();
+    if (digit > oneThreshold){
+        return 1;
+    }
+    return 0;
+}
