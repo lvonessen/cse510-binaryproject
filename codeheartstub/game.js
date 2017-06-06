@@ -14,6 +14,7 @@ var FALL_TIME = .2; //0.5;
 // time, in seconds, until the next tile gets generated
 var GEN_TIME = .6;//.3; //1; 
 var BONUS_DELAY = 2;
+var NEXT_GAME_TIME = 2;
 
 // In tiles
 var BOARD_SIZE	 = 4;
@@ -91,6 +92,8 @@ defineGame(GAME_NAME, "Laura Vonessen & Emilia Gan", TITLE_IMAGE_NAME, "V", fals
 
 var gameHistory;
 
+var gameOver = true;
+
 var oneThreshold = 0.5;
 
 ///////////////////////////////////////////////////////////////
@@ -104,6 +107,7 @@ function onSetup() {
 	
 	paused = true;
 	score = 0;
+	gameOver = false;
 	initializeBoard();
 	initializeGameHistory();
 	drawScreen();
@@ -133,6 +137,15 @@ function togglePause(){
 
 // When a touch starts
 function onTouchStart(x, y, id) {
+
+	if (gameOver){
+		if (currentTime()>waitTime){
+			onSetup();
+			setPaused(false);
+		}
+		return;
+	}
+	
 	//onKeyStart(32);
 	touchID = id;
 	if (paused) {
@@ -149,6 +162,12 @@ function onTouchStart(x, y, id) {
 }
 
 function onTouchMove(x, y, id) {
+
+	if (gameOver){
+		onSetup();
+		return;
+	}
+	
 	var tile;
 	
 	var bcoord = getBoardIndex(x,y);
@@ -200,7 +219,7 @@ function onTouchEnd(x, y, id) {
 // Called 30 times or more per second
 function onTick() {
 	
-	if (!paused){
+	if (!gameOver && !paused){
 		if (nextFallTime < currentTime()){
 			nextFallTime += FALL_TIME;
 			onFall();
@@ -211,12 +230,22 @@ function onTick() {
 		if (nextGenTime < currentTime()){
 			nextGenTime += GEN_TIME;
 			generateTile();
+			if (gameOver){
+				console.log("Game over :)");
+				waitTime = currentTime()+NEXT_GAME_TIME;
+				drawScreen();
+				setPaused(true);
+			}
 		}
 		
 		if (gameHistory.bonusComplete && nextBonusTime < currentTime()){
 			gameHistory.numBonusDigits ++;
 			setUpBonus(gameHistory.numBonusDigits);
 		}
+	}
+	
+	if (gameOver && currentTime() > waitTime){
+		drawScreen();
 	}
 }
 
@@ -266,8 +295,11 @@ function generateTile(){
 	// choose a column for the tile
 	// includes invisible header tiles
 	var freeSpaces = BOARD_HEIGHT * BOARD_WIDTH - visTiles;
+	//console.log(freeSpaces);
+	//console.log(freeSpaces<=BOARD_WIDTH);
 	// don't need to keep generating tiles if the board is full
-	if (freeSpaces<BOARD_WIDTH){
+	if (freeSpaces<=BOARD_WIDTH){
+		gameOver = true;
 		return;
 	}
 	
@@ -653,6 +685,18 @@ function drawScreen() {
 		strokeLine(selectedTiles[i].center.x, selectedTiles[i].center.y,
 				 selectedTiles[i + 1].center.x, selectedTiles[i + 1].center.y,
 				 LINE_COLOR, 40);
+	}
+	
+	if (gameOver){
+		fillRectangle(boardTL.x-BORDER + 100, boardTL.y-BORDER + 200,2*BORDER+ BOARD_WIDTH*TILE_SIZE - 200, 2*BORDER+(BOARD_HEIGHT-1)*TILE_SIZE - 400, BORDER_COLOR, CORNER);
+		
+		fillText("Game over", screenWidth / 2, 1100, makeColor(0.5, 0.5, 0.5),
+			 "100px Arial", "center", "top");
+			 
+		if (currentTime() > waitTime){
+			fillText("Click to play again!", screenWidth / 2, 1300, makeColor(0.5, 0.5, 0.5),
+				"80px Arial", "center", "top");
+		}
 	}
 }
 
