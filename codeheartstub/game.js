@@ -209,7 +209,7 @@ function onTouchMove(x, y, id) {
 // When a touch ends, show key pad
 function onTouchEnd(x, y, id) {
 	// condition to show key pad
-	if (touchID == id && selectedTiles.length > 0) {
+	if (!gameOver && touchID == id && selectedTiles.length > 0) {
 		touchID = -1;
 		setPaused(true);
 		showKeyPad();
