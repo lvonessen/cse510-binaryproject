@@ -1,0 +1,6 @@
+# Binary Number Games
+
+Concept: (via Andy Ko: http://faculty.washington.edu/ajko/)
+The world has decided that everyone should have access to high quality computing education. Unfortunately, providing access to this education at scale is incredibly challenging, requiring new funding, new teacher training, and new policy. But most of all, it requires new motivation, since most people don't want to learn computing. What if instead of trying to convince people to learn computing, they were instead forced to learn it through activities they already engage in? For example, what if small amounts of learning were embedded in online advertisements or, rather than captchas, people proved their humanity by learning something about computing and then demonstrating their competence? This work could be in the spirit of Bansky, the graffiti artist who embeds political activism in street art that people have no choice but to engage with. The work itself might be a few exemplars of this new genre of guerilla CS education.
+
+In this course project, Emilia Gan (http://emilia.tech/) and I (https://homes.cs.washington.edu/~laurav4/) explored some of the possibilities of guerilla computer science education, then decided to implement two short games focused on teaching binary numbers, an important CS concept.
